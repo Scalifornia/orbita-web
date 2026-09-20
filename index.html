@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#090a1b">
+  <meta name="description" content="Órbita — um jogo de naves em que cada letra é um disparo. Joga com o teu teclado, no computador ou no telemóvel.">
+  <title>Órbita — Cada letra conta.</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="viewport" id="viewport">
+  <header class="header">
+    <a class="brand" href="./" aria-label="Órbita, início">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="11"/><ellipse cx="20" cy="20" rx="21" ry="7" transform="rotate(-40 20 20)"/><circle class="satellite" cx="31" cy="8" r="3"/></svg>
+      <span>ÓRBITA<span class="brand-dot">✳</span></span>
+    </a>
+    <div class="header-note"><span class="live-dot"></span> NEON PROTOCOL <span class="header-version">02</span></div>
+    <nav aria-label="Controlos"><button id="helpButton" class="text-button">Como jogar <span>↗</span></button><button id="audioSettingsButton" class="text-button">Áudio <span>≋</span></button><button id="soundButton" class="icon-button" aria-label="Desativar som" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path id="soundWaves" d="M15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg></button></nav>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="eyebrow"><span class="small-cross">✳</span> LIGAÇÃO ESTABELECIDA / 02</div>
+      <h1>Entra<br>na<br><em>órbita.</em></h1>
+      <p class="intro">Dedos rápidos. Reflexos acesos.<br>Cada letra é um impacto.</p>
+      <div class="ship-card"><div><span class="eyebrow">A TUA NAVE</span><strong>INTERCEPTOR</strong><small>PROPULSÃO IÓNICA · ONLINE</small></div><img src="./assets/player-ship.png" alt="A tua nave original, com quatro propulsores azuis"></div>
+      <div class="record-card"><span class="eyebrow">O TEU RECORDE <span>↗</span></span><strong id="recordValue">00000</strong><span class="record-caption" id="recordCaption">Neste navegador · modo normal</span></div>
+      <div class="instructions"><div><span>01</span><p>Escolhe um alvo.<br><b>Escreve a primeira letra.</b></p></div><div><span>02</span><p>Completa a palavra.<br><b>Cada letra dispara.</b></p></div><div><span>03</span><p>Mantém o ritmo.<br><b>Protege as tuas 3 vidas.</b></p></div></div>
+      <div class="sidebar-bottom"><span>SISTEMAS PRONTOS.</span><span>PT · V.02</span></div>
+    </aside>
+
+    <section class="game-shell" aria-label="Jogo Órbita">
+      <div class="game-hud">
+        <div class="hud-score"><span class="hud-label">PONTOS</span><strong id="scoreValue">00000</strong></div>
+        <div class="hud-wave"><span class="hud-label">NÍVEL</span><strong id="waveValue">01</strong></div>
+        <div class="hud-speed"><span class="hud-label">VELOCIDADE</span><strong id="speedValue">1.00×</strong></div>
+        <div class="hud-shields"><span class="hud-label">ESCUDO</span><div id="shields" aria-label="3 vidas"><i></i><i></i><i></i></div></div>
+        <button id="pauseButton" class="icon-button pause-button" aria-label="Pausar jogo" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
+      </div>
+      <div class="level-strip"><span id="levelName">01 / PORTAL NÉON</span><div class="level-track"><span id="levelFill"></span></div><span id="levelCount">0 / 8</span></div>
+
+      <div class="field" id="field">
+        <canvas id="gameCanvas" aria-label="Naves inimigas com palavras. Escreve as letras para as destruir."></canvas>
+        <div class="field-coordinate">SECTOR 07 <span>·</span> SISTEMA ÓRBITA</div>
+        <div class="wave-toast" id="waveToast" aria-live="polite"></div>
+        <div class="combo" id="combo"></div>
+
+        <section class="overlay start-panel" id="startPanel" aria-labelledby="startHeading">
+          <div class="mission-tag"><span class="live-dot"></span> TODOS OS SISTEMAS ONLINE</div>
+          <h2 id="startHeading">Escreve rápido.<br><em>Brilha mais alto.</em></h2>
+          <p>Uma letra. Um disparo. Uma explosão.<br>Entra no próximo nível.</p>
+          <div class="mission-settings">
+<label>Idioma dos menus<select id="uiLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
+<label>Idioma do texto<select id="textLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
+<label>Cenário<select id="world"><option value="space">Espaço</option><option value="earth">Terra</option></select></label>
+<label>Conto<select id="story"><option value="hare">A Lebre e a Tartaruga</option><option value="lion">O Leão e o Rato</option></select></label>
+<label class="wide">Escrita<select id="writing"><option value="basic">Básica · acentos opcionais</option><option value="advanced">Avançada · escrita exata</option></select></label>
+<p class="wide settings-note">Avançada: copia maiúsculas, acentos, pontuação e símbolos. Os espaços são automáticos.</p>
+</div>
+<div class="progression" role="group" aria-label="Progressão"><button data-progression="campaign" aria-pressed="true"><strong>Campanha</strong><span>10 níveis</span></button><button data-progression="endless" aria-pressed="false"><strong>Infinito</strong><span>Sempre a acelerar</span></button></div>
+          <div class="play-mode" role="group" aria-label="Modo de jogo"><button data-mode="reading" aria-pressed="true">Texto seguido</button><button data-mode="arcade" aria-pressed="false">Palavras soltas</button></div>
+          <div class="difficulty" role="group" aria-label="Dificuldade">
+            <button data-difficulty="normal" aria-pressed="true">Normal</button>
+            <button data-difficulty="hard" aria-pressed="false">Difícil</button>
+            <button data-difficulty="extreme" aria-pressed="false">Extremo</button>
+          </div>
+          <button id="startButton" class="primary-button">Iniciar missão <span>↗</span></button>
+          <button id="rankingButton" class="custom-button">Ranking local ↗</button>
+          <button id="customButton" class="custom-button">Usar o meu texto <span>+</span></button>
+          <button id="menuMusicButton" class="music-button"><span class="equalizer"><i></i><i></i><i></i><i></i></span><span id="menuMusicLabel">Ouvir música do menu</span></button>
+        </section>
+
+        <section class="overlay pause-panel" id="pausePanel" aria-labelledby="pauseHeading" hidden>
+          <div class="mission-tag">RESPIRA. O ESPAÇO PODE ESPERAR.</div>
+          <h2 id="pauseHeading">Missão em pausa.</h2>
+          <p id="pauseReason">Retoma quando estiveres pronto.</p>
+          <button id="resumeButton" class="primary-button">Continuar missão <span>↗</span></button>
+          <button id="exitButton" class="custom-button">Voltar ao início</button>
+        </section>
+
+        <section class="overlay result-panel" id="resultPanel" aria-labelledby="resultHeading" hidden>
+          <div class="mission-tag" id="resultTag">A PRÓXIMA VAGA É TUA.</div>
+          <h2 id="resultHeading">Missão terminada.</h2>
+          <strong class="result-score" id="resultScore">0</strong><span class="result-score-label">PONTOS</span>
+          <div class="result-stats"><div><strong id="resultWave">1</strong><span>NÍVEL</span></div><div><strong id="resultAccuracy">100%</strong><span>PRECISÃO</span></div><div><strong id="resultWpm">0</strong><span>PAL./MIN</span></div></div>
+          <button id="retryButton" class="primary-button">Mais uma missão <span>↗</span></button>
+          <button id="menuButton" class="custom-button">Voltar ao início</button>
+        </section>
+      </div>
+
+      <div class="typing-dock" id="typingDock">
+        <div class="reading-strip" id="readingStrip" hidden><span class="reading-label">A TUA HISTÓRIA</span><div id="readingText"></div></div>
+        <div class="input-line"><span class="input-crosshair" aria-hidden="true">⌖</span><label class="sr-only" for="typingInput">Escreve as palavras das naves. Os espaços são automáticos.</label><div class="input-wrap"><span id="typedEcho" aria-hidden="true">O teu teclado é o comando.</span><input id="typingInput" type="text" inputmode="text" enterkeyhint="go" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="O teu teclado é o comando." disabled></div><button id="releaseButton" class="release-button" aria-label="Libertar alvo" title="Libertar alvo" disabled>↺</button></div>
+        <div class="input-meta"><span id="targetHint">COMPUTADOR OU TELEMÓVEL. TU ESCOLHES.</span><span id="accuracyValue">SEM PRESSA. ATÉ COMEÇAR.</span></div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><span>MENOS SCROLL. MAIS SKILL.</span><span>Uma letra de cada vez. <span class="footer-star">✳</span></span></footer>
+</div>
+
+<dialog id="helpDialog" aria-labelledby="helpTitle">
+  <button class="dialog-close icon-button" data-close="helpDialog" aria-label="Fechar ajuda">×</button>
+  <div class="eyebrow">MANUAL DE VOO</div><h2 id="helpTitle">É só escrever.</h2>
+  <ol><li>Em <b>Texto seguido</b>, acompanha a história e escreve a palavra destacada. Em <b>Palavras soltas</b>, a primeira letra escolhe a nave mais próxima que começa por essa letra.</li><li>Continua a escrever a palavra para disparar. Uma letra errada quebra a sequência, mas podes continuar com a letra certa.</li><li>Se uma nave passar a linha de defesa, perdes uma vida. Tens três.</li></ol>
+  <p>No telemóvel, toca em <b>Iniciar missão</b> para abrir o teu teclado. Se o fechares, toca no campo de escrita. Na escrita básica, os acentos são opcionais. Na avançada, copia também maiúsculas, acentos, pontuação e símbolos.</p>
+  <p>Os <b>espaços aparecem automaticamente</b> ao terminar cada palavra. Em <b>Campanha</b>, conquista 10 níveis. Em <b>Infinito</b>, a velocidade aumenta com o tempo. Normal é a dificuldade de entrada; Difícil e Extremo sobem o ritmo.</p>
+  <p>Usa <b>↺</b> para libertar o alvo. No computador, <b>Esc</b> pausa a partida. O recorde fica guardado neste navegador, por dificuldade e tipo de texto.</p>
+  <button class="primary-button" data-close="helpDialog">Pronto para descolar <span>↗</span></button>
+</dialog>
+
+<dialog id="customDialog" aria-labelledby="customTitle">
+  <button class="dialog-close icon-button" data-close="customDialog" aria-label="Fechar texto personalizado">×</button>
+  <div class="eyebrow">A TUA MISSÃO, AS TUAS PALAVRAS</div><h2 id="customTitle">Traz o teu texto.</h2>
+  <p>Cola um texto e treina com as tuas palavras, pela ordem em que aparecem. Ao chegar ao fim, o texto recomeça.</p>
+  <label for="customText">Texto de treino</label><textarea id="customText" rows="5" maxlength="10000" placeholder="Escreve ou cola aqui o teu texto…"></textarea>
+  <p class="dialog-note">Na escrita básica, os acentos são simplificados e a pontuação é ignorada. Na avançada, copia todos os caracteres de cada palavra. Os espaços são automáticos. O texto fica apenas neste dispositivo.</p>
+  <p id="customError" class="form-error" role="alert"></p>
+  <button id="saveTextButton" class="primary-button">Usar este texto <span>↗</span></button>
+  <button id="defaultTextButton" class="custom-button">Voltar às palavras do jogo</button>
+</dialog>
+<dialog id="audioDialog" aria-labelledby="audioTitle">
+  <button class="dialog-close icon-button" data-close="audioDialog" aria-label="Fechar áudio">×</button>
+  <div class="eyebrow">FREQUÊNCIA NÉON</div><h2 id="audioTitle">Sente o ritmo.</h2>
+  <p>Ambiente no menu e Binary Groove durante a missão. Missile Launch acompanha os tiros; Explosion toca quando uma palavra é destruída.</p>
+  <label for="musicVolume">Música <output id="musicVolumeLabel">25%</output></label><input id="musicVolume" type="range" min="0" max="100" value="25">
+  <label for="sfxVolume">Tiros e explosões <output id="sfxVolumeLabel">50%</output></label><input id="sfxVolume" type="range" min="0" max="100" value="50">
+  <button id="audioListenButton" class="primary-button">Ativar áudio <span>♫</span></button>
+  <p class="dialog-note">O som começa após o primeiro toque ou clique. Podes desligá-lo no ícone de altifalante.</p>
+</dialog>
+<dialog id="rankingDialog" aria-labelledby="rankingTitle"><button class="dialog-close icon-button" data-close="rankingDialog" aria-label="Fechar">×</button><h2 id="rankingTitle">Ranking local</h2><p>As 10 melhores partidas nesta configuração, guardadas neste navegador.</p><p id="rankingConfig"></p><ol id="rankingList"></ol><p id="rankingStatus" role="status"></p></dialog>
+<script type="module" src="./main.mjs"></script>
+</body>
+</html>

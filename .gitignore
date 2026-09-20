@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+preview-*.png
+assets/786224*.wav
+assets/game-loop.wav
+assets/menu-loop-original.wav
+assets/missil2.png
+assets/missile.png
+assets/powerup*.wav
+assets/spaceship.png
+assets/tank.png
