@@ -7,7 +7,7 @@
   <meta name="description" content="Órbita — um jogo de naves em que cada letra é um disparo. Joga com o teu teclado, no computador ou no telemóvel.">
   <title>Órbita — Cada letra conta.</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css">
 </head>
 <body>
 <div class="viewport" id="viewport">
@@ -46,29 +46,17 @@
         <div class="field-coordinate">SECTOR 07 <span>·</span> SISTEMA ÓRBITA</div>
         <div class="wave-toast" id="waveToast" aria-live="polite"></div>
         <div class="combo" id="combo"></div>
+        <section class="level-completion" id="levelCompletion" aria-live="polite" hidden><span class="eyebrow" id="completionTag">Nível concluído</span><h2 id="completionTitle" data-no-i18n></h2><div id="completionStats" data-no-i18n></div><div class="completion-progress"><i id="completionFill"></i></div><span id="completionProgress"></span><button id="nextLevelButton" class="primary-button">Próximo nível</button></section>
 
         <section class="overlay start-panel" id="startPanel" aria-labelledby="startHeading">
           <div class="mission-tag"><span class="live-dot"></span> TODOS OS SISTEMAS ONLINE</div>
-          <h2 id="startHeading">Escreve rápido.<br><em>Brilha mais alto.</em></h2>
-          <p>Uma letra. Um disparo. Uma explosão.<br>Entra no próximo nível.</p>
-          <div class="mission-settings">
-<label>Idioma dos menus<select id="uiLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
-<label>Idioma do texto<select id="textLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
-<label>Cenário<select id="world"><option value="space">Espaço</option><option value="earth">Terra</option></select></label>
-<label>Conto<select id="story"><option value="hare">A Lebre e a Tartaruga</option><option value="lion">O Leão e o Rato</option></select></label>
-<label class="wide">Escrita<select id="writing"><option value="basic">Básica · acentos opcionais</option><option value="advanced">Avançada · escrita exata</option></select></label>
-<p class="wide settings-note">Avançada: copia maiúsculas, acentos, pontuação e símbolos. Os espaços são automáticos.</p>
-</div>
-<div class="progression" role="group" aria-label="Progressão"><button data-progression="campaign" aria-pressed="true"><strong>Campanha</strong><span>10 níveis</span></button><button data-progression="endless" aria-pressed="false"><strong>Infinito</strong><span>Sempre a acelerar</span></button></div>
-          <div class="play-mode" role="group" aria-label="Modo de jogo"><button data-mode="reading" aria-pressed="true">Texto seguido</button><button data-mode="arcade" aria-pressed="false">Palavras soltas</button></div>
-          <div class="difficulty" role="group" aria-label="Dificuldade">
-            <button data-difficulty="normal" aria-pressed="true">Normal</button>
-            <button data-difficulty="hard" aria-pressed="false">Difícil</button>
-            <button data-difficulty="extreme" aria-pressed="false">Extremo</button>
-          </div>
-          <button id="startButton" class="primary-button">Iniciar missão <span>↗</span></button>
-          <button id="rankingButton" class="custom-button">Ranking local ↗</button>
-          <button id="customButton" class="custom-button">Usar o meu texto <span>+</span></button>
+          <h2 id="startHeading">Uma palavra de cada vez.<br><em>Uma aventura inteira.</em></h2>
+          <p>Escolhe uma história ou traz o teu livro.</p>
+          <div class="hero-language"><label for="menuLanguage">Idioma dos menus</label><select id="menuLanguage" aria-label="Idioma dos menus"></select></div>
+          <div class="mission-selection" id="missionSelection" data-no-i18n></div>
+          <button id="startButton" class="primary-button">Jogar <span>↗</span></button>
+          <button id="continueButton" class="continue-button" hidden><span>Continuar</span><small id="continueSummary" data-no-i18n></small></button>
+          <div class="menu-secondary"><button id="customButton" class="custom-button">Carregar texto/documento</button><button id="optionsButton" class="custom-button">Opções</button></div>
           <button id="menuMusicButton" class="music-button"><span class="equalizer"><i></i><i></i><i></i><i></i></span><span id="menuMusicLabel">Ouvir música do menu</span></button>
         </section>
 
@@ -77,7 +65,7 @@
           <h2 id="pauseHeading">Missão em pausa.</h2>
           <p id="pauseReason">Retoma quando estiveres pronto.</p>
           <button id="resumeButton" class="primary-button">Continuar missão <span>↗</span></button>
-          <button id="exitButton" class="custom-button">Voltar ao início</button>
+          <button id="exitButton" class="custom-button">Guardar e sair</button>
         </section>
 
         <section class="overlay result-panel" id="resultPanel" aria-labelledby="resultHeading" hidden>
@@ -93,31 +81,51 @@
       <div class="typing-dock" id="typingDock">
         <div class="reading-strip" id="readingStrip" hidden><span class="reading-label">A TUA HISTÓRIA</span><div id="readingText"></div></div>
         <div class="input-line"><span class="input-crosshair" aria-hidden="true">⌖</span><label class="sr-only" for="typingInput">Escreve as palavras das naves. Os espaços são automáticos.</label><div class="input-wrap"><span id="typedEcho" aria-hidden="true">O teu teclado é o comando.</span><input id="typingInput" type="text" inputmode="text" enterkeyhint="go" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="O teu teclado é o comando." disabled></div><button id="releaseButton" class="release-button" aria-label="Libertar alvo" title="Libertar alvo" disabled>↺</button></div>
-        <div class="input-meta"><span id="targetHint">COMPUTADOR OU TELEMÓVEL. TU ESCOLHES.</span><span id="accuracyValue">SEM PRESSA. ATÉ COMEÇAR.</span></div>
+        <span id="saveStatus" class="save-status" role="status"></span><div id="campaignProgress" class="campaign-progress" hidden><span id="campaignTitle" data-no-i18n></span><span id="campaignPercent"></span></div><div class="input-meta"><span id="targetHint">COMPUTADOR OU TELEMÓVEL. TU ESCOLHES.</span><span id="accuracyValue">SEM PRESSA. ATÉ COMEÇAR.</span></div>
       </div>
     </section>
   </main>
   <footer class="footer"><span>MENOS SCROLL. MAIS SKILL.</span><span>Uma letra de cada vez. <span class="footer-star">✳</span></span></footer>
 </div>
 
+<dialog id="optionsDialog" aria-labelledby="optionsTitle"><button class="dialog-close icon-button" data-close="optionsDialog" aria-label="Fechar">×</button><div class="eyebrow">A tua próxima missão</div><h2 id="optionsTitle">Opções</h2>          <div class="mission-settings">
+<label>Idioma dos menus<select id="uiLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
+<label>Idioma do texto<select id="textLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
+<label>Cenário<select id="world"><option value="space">Espaço</option><option value="earth">Terra</option></select></label>
+<label>Conto<select id="story"><option value="hare">A Lebre e a Tartaruga</option><option value="lion">O Leão e o Rato</option></select></label>
+<label class="wide">Escrita<select id="writing"><option value="basic">Básica · acentos opcionais</option><option value="advanced">Avançada · escrita exata</option></select></label>
+<p class="wide settings-note">Avançada: copia maiúsculas, acentos, pontuação e símbolos. Os espaços são automáticos.</p>
+</div>
+<div class="progression" role="group" aria-label="Progressão"><button data-progression="campaign" aria-pressed="true"><strong>Campanha</strong><span id="campaignLengthLabel">História completa</span></button><button data-progression="endless" aria-pressed="false"><strong>Infinito</strong><span>Sempre a acelerar</span></button></div>
+          <div class="play-mode" role="group" aria-label="Modo de jogo"><button data-mode="reading" aria-pressed="true">Texto seguido</button><button data-mode="arcade" aria-pressed="false">Palavras soltas</button></div>
+          <div class="difficulty" role="group" aria-label="Dificuldade">
+            <button data-difficulty="normal" aria-pressed="true">Normal</button>
+            <button data-difficulty="hard" aria-pressed="false">Difícil</button>
+            <button data-difficulty="extreme" aria-pressed="false">Extremo</button>
+          </div>
+<button id="rankingButton" class="custom-button">Ranking local ↗</button><button class="primary-button" data-close="optionsDialog">Pronto para jogar</button></dialog>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
   <button class="dialog-close icon-button" data-close="helpDialog" aria-label="Fechar ajuda">×</button>
   <div class="eyebrow">MANUAL DE VOO</div><h2 id="helpTitle">É só escrever.</h2>
-  <ol><li>Em <b>Texto seguido</b>, acompanha a história e escreve a palavra destacada. Em <b>Palavras soltas</b>, a primeira letra escolhe a nave mais próxima que começa por essa letra.</li><li>Continua a escrever a palavra para disparar. Uma letra errada quebra a sequência, mas podes continuar com a letra certa.</li><li>Se uma nave passar a linha de defesa, perdes uma vida. Tens três.</li></ol>
-  <p>No telemóvel, toca em <b>Iniciar missão</b> para abrir o teu teclado. Se o fechares, toca no campo de escrita. Na escrita básica, os acentos são opcionais. Na avançada, copia também maiúsculas, acentos, pontuação e símbolos.</p>
-  <p>Os <b>espaços aparecem automaticamente</b> ao terminar cada palavra. Em <b>Campanha</b>, conquista 10 níveis. Em <b>Infinito</b>, a velocidade aumenta com o tempo. Normal é a dificuldade de entrada; Difícil e Extremo sobem o ritmo.</p>
+  <ol><li>Em <b>Texto seguido</b>, acompanha a história e escreve a palavra destacada. Em <b>Palavras soltas</b>, a primeira letra escolhe o alvo mais próximo que começa por essa letra.</li><li>Continua a escrever a palavra para disparar. Uma letra errada quebra a sequência, mas podes continuar com a letra certa.</li><li>Se um alvo passar a linha de defesa, perdes uma vida. Tens três.</li></ol>
+  <p>No telemóvel, toca em <b>Jogar</b> para abrir o teu teclado. Se o fechares, toca no campo de escrita. Na escrita básica, os acentos são opcionais. Na avançada, copia também maiúsculas, acentos, pontuação e símbolos.</p>
+  <p>Os <b>espaços aparecem automaticamente</b> ao terminar cada palavra.</p>
+  <p>Em Texto seguido, a Campanha percorre a história ou o documento completo. Os níveis respeitam capítulos, secções e quebras naturais do texto. A posição exata e as estatísticas ficam guardadas neste navegador.</p>
+  <p>Usa Continuar para retomar a aventura guardada. O documento e o progresso ficam apenas neste dispositivo e navegador.</p>
+  <p>Em Palavras soltas, a Campanha tem 10 níveis. Em Infinito, o texto recomeça ao chegar ao fim e a velocidade aumenta com o tempo. Difícil e Extremo aumentam o ritmo.</p>
+  <p>Podes carregar TXT, PDF com texto selecionável, DOCX ou EPUB. Os PDFs digitalizados precisam de reconhecimento de texto (OCR), que ainda não está disponível.</p>
   <p>Usa <b>↺</b> para libertar o alvo. No computador, <b>Esc</b> pausa a partida. O recorde fica guardado neste navegador, por dificuldade e tipo de texto.</p>
-  <button class="primary-button" data-close="helpDialog">Pronto para descolar <span>↗</span></button>
+  <button class="primary-button" data-close="helpDialog">Pronto para jogar <span>↗</span></button>
 </dialog>
 
 <dialog id="customDialog" aria-labelledby="customTitle">
   <button class="dialog-close icon-button" data-close="customDialog" aria-label="Fechar texto personalizado">×</button>
-  <div class="eyebrow">A TUA MISSÃO, AS TUAS PALAVRAS</div><h2 id="customTitle">Traz o teu texto.</h2>
-  <p>Cola um texto e treina com as tuas palavras, pela ordem em que aparecem. Ao chegar ao fim, o texto recomeça.</p>
-  <label for="customText">Texto de treino</label><textarea id="customText" rows="5" maxlength="10000" placeholder="Escreve ou cola aqui o teu texto…"></textarea>
+  <div class="eyebrow">A TUA MISSÃO, AS TUAS PALAVRAS</div><h2 id="customTitle">Texto ou documento</h2>
+  <p>O documento é processado apenas neste dispositivo.</p><label class="file-drop">Carregar ficheiro<input type="file" id="documentFile" accept=".txt,.pdf,.docx,.epub,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"><small>Formatos: TXT, PDF, DOCX e EPUB</small></label><label for="documentTitle">Título</label><input id="documentTitle" type="text" maxlength="160" autocomplete="off">
+  <label for="customText">Texto de treino</label><textarea id="customText" rows="5" maxlength="1000000" placeholder="Escreve ou cola aqui o teu texto…"></textarea>
   <p class="dialog-note">Na escrita básica, os acentos são simplificados e a pontuação é ignorada. Na avançada, copia todos os caracteres de cada palavra. Os espaços são automáticos. O texto fica apenas neste dispositivo.</p>
   <p id="customError" class="form-error" role="alert"></p>
-  <button id="saveTextButton" class="primary-button">Usar este texto <span>↗</span></button>
+  <button id="saveTextButton" class="custom-button">Pré-visualização</button><section id="documentPreview" class="document-preview" hidden><h3 id="previewTitle" data-no-i18n></h3><p id="previewStats" data-no-i18n></p><pre id="previewText" data-no-i18n></pre></section><button id="playDocumentButton" class="primary-button" disabled>Começar campanha <span>↗</span></button>
   <button id="defaultTextButton" class="custom-button">Voltar às palavras do jogo</button>
 </dialog>
 <dialog id="audioDialog" aria-labelledby="audioTitle">

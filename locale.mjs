@@ -1,6 +1,6 @@
 import { catalogs, languages } from './locale-data.mjs';
 
-export { catalogs } from './locale-data.mjs';
+export { catalogs, previewWords } from './locale-data.mjs';
 export const supportedLanguages = Object.freeze(Object.fromEntries(languages.map(({ code, label }) => [code, label])));
 export const languageTags = Object.freeze(Object.fromEntries(languages.map(({ code, tag }) => [code, tag])));
 let language = 'pt';
@@ -38,10 +38,16 @@ function interpolate(template, values) {
   return template.replace(/\{(\w+)\}/g, (match, name) => Object.hasOwn(values, name) ? String(values[name]) : match);
 }
 
+const singularCounts = Object.freeze({
+  '{count} vidas': '1 vida', '{count} palavras': '1 palavra',
+  '{count} níveis': '1 nível', '{count} capítulos': '1 capítulo',
+});
+
 /** Translate exact messages; parameters are plain text and are never interpreted as HTML. */
 export function t(value, parameters = {}) {
   const source = String(value ?? '');
   if (source === '1 vidas') return t('1 vida', parameters);
+  if (Number(parameters.count) === 1 && Object.hasOwn(singularCounts, source)) return catalogs[language][singularCounts[source]];
   if (Object.hasOwn(catalogs[language], source)) return interpolate(catalogs[language][source], parameters);
   const upperKey = upperKeys.get(source);
   if (upperKey) return interpolate(catalogs[language][upperKey].toLocaleUpperCase(languageTags[language]), parameters);
@@ -52,7 +58,7 @@ export function t(value, parameters = {}) {
       const match = source.match(pattern);
       if (!match) continue;
       const values = Object.fromEntries(names.map((name, i) => [name, name === 'title' ? t(match[i + 1]) : match[i + 1]]));
-      return interpolate(catalogs[language][key], values);
+      return t(key, values);
     }
   }
   if (source.includes(' · ')) return source.split(' · ').map(part => t(part)).join(' · ');

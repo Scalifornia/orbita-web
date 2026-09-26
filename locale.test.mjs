@@ -205,3 +205,58 @@ test('new interface and document import status copy have translations in every c
     for (const catalog of Object.values(catalogs)) assert.ok(Object.hasOwn(catalog, message));
   }
 });
+
+test('all five languages translate every changing HUD field and switch back cleanly', () => {
+  const samples = [
+    'NÍVEL 03 · CAMPO DE ESTRELAS', '03 / TRILHO DO BOSQUE',
+    '3 vidas', '2 vidas', '1 vidas', '0 vidas', '10 LETRAS SEGUIDAS ↗',
+    '99.5% · ESPAÇOS AUTO', 'ALVO: "¿Música?" · 0/10',
+    'normal · campanha · teu texto', 'Nível 2 de 8', 'Capítulo 6', '37% concluído',
+  ];
+  const { doc, text, element } = fixture();
+  const nodes = samples.map(value => text(value));
+  doc.body = element('body', {}, nodes);
+  for (const language of ['en', 'fr', 'de', 'es', 'pt']) {
+    setLanguage(language); translatePage(doc);
+    for (let i = 0; i < nodes.length; i++) assert.equal(nodes[i].nodeValue, t(samples[i]), `${language}: ${samples[i]}`);
+  }
+});
+
+test('single remaining life and single campaign counts use singular labels', () => {
+  const expected = {
+    pt: ['1 vida', '1 palavra', '1 nível', '1 capítulo'],
+    en: ['1 life', '1 word', '1 level', '1 chapter'],
+    fr: ['1 vie', '1 mot', '1 niveau', '1 chapitre'],
+    de: ['1 Leben', '1 Wort', '1 Level', '1 Kapitel'],
+    es: ['1 vida', '1 palabra', '1 nivel', '1 capítulo'],
+  };
+  for (const language of Object.keys(expected)) {
+    setLanguage(language);
+    assert.deepEqual(['{count} vidas', '{count} palavras', '{count} níveis', '{count} capítulos'].map(source => t(source, { count: 1 })), expected[language]);
+    assert.equal(t('1 níveis'), expected[language][2]);
+  }
+});
+
+test('all current HTML text and accessible labels have catalog coverage', () => {
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  const literals = [...html.matchAll(/>([^<>]+)</g)].map(match => match[1].trim());
+  literals.push(...[...html.matchAll(/(?:aria-label|placeholder|title|alt)="([^"]+)"/g)].map(match => match[1]));
+  const intentionallyUntranslated = new Set([
+    'ÓRBITA', 'Esc', ...Object.values(supportedLanguages),
+    ...Object.values(stories).flatMap(story => Object.values(story).map(item => item.title)),
+  ]);
+  for (const source of literals.filter(text => /\p{L}/u.test(text))) {
+    if (intentionallyUntranslated.has(source) || Object.hasOwn(catalogs.pt, source)) continue;
+    const translated = Object.keys(catalogs).filter(code => code !== 'pt').some(code => { setLanguage(code); return t(source) !== source; });
+    assert.ok(translated, `Missing UI source message: ${source}`);
+  }
+});
+
+test('menu target sample words follow text language independently', async () => {
+  const { previewWords } = await import('./locale.mjs');
+  assert.deepEqual(Object.keys(previewWords), Object.keys(supportedLanguages));
+  for (const words of Object.values(previewWords)) assert.deepEqual(Object.keys(words), ['space', 'earth', 'discover', 'horizon']);
+  setLanguage('de');
+  assert.equal(previewWords.fr.earth, 'forêt');
+  assert.equal(previewWords.es.discover, 'descubrir');
+});

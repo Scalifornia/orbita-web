@@ -34,19 +34,23 @@ const MAX_FRAME_SECONDS = 0.1;
  * Custom words stay in their supplied order and repeat. The renderer fits long tokens.
  */
 export class GameEngine {
-  constructor({ difficulty = 'normal', customText = '', mode = 'arcade', progression = 'campaign', advanced = false, random = Math.random } = {}) {
+  constructor({ difficulty = 'normal', customText = '', mode = 'arcade', progression = 'campaign', advanced = false, campaignLevels = null, random = Math.random } = {}) {
     this.advanced = advanced;
     this.mode = mode === 'reading' ? 'reading' : 'arcade';
     this.progression = progression === 'endless' ? 'endless' : 'campaign';
     this.difficulty = Object.hasOwn(SETTINGS, difficulty) ? difficulty : 'normal';
     this._settings = SETTINGS[this.difficulty];
     this._random = typeof random === 'function' ? random : Math.random;
-    this._customWords = wordsFromText(customText, advanced);
+    this._sourceText = customText;
+    this._levels = Array.isArray(campaignLevels) ? campaignLevels.map(level => ({ ...level, words: wordsFromText(level.text, advanced) })).filter(level => level.words.length) : null;
+    if (!this._levels?.length) this._levels = null;
+    this._customWords = this._levels ? this._levels[0].words : wordsFromText(customText, advanced);
     this._reset();
   }
 
   _reset() {
     this.status = 'ready';
+    if (this._levels) this._customWords = this._levels[0].words;
     this.enemies = [];
     this.targetId = null;
     this.score = 0;
@@ -65,6 +69,7 @@ export class GameEngine {
     this._nextId = 1;
     this._customIndex = 0;
     this._events = [];
+    this._fatalTarget = null;
     this._spawnCountdown = this._spawnInterval;
   }
 
@@ -82,19 +87,22 @@ export class GameEngine {
   }
 
   get levelGoal() {
-    return 8 + (this.level - 1) * 2;
+    return this._levels ? this._customWords.length : 8 + (this.level - 1) * 2;
   }
 
   get levelProgress() {
-    return Math.min(1, Math.max(0, this.levelKills / this.levelGoal));
+    return Math.min(1, Math.max(0, (this._levels ? this.readingIndex : this.levelKills) / this.levelGoal));
   }
 
   get levelTitle() {
-    return LEVEL_NAMES[(this.level - 1) % LEVEL_NAMES.length];
+    return this._levels ? this._levels[this.level - 1].title : LEVEL_NAMES[(this.level - 1) % LEVEL_NAMES.length];
   }
 
   get speedMultiplier() {
     const completedLevels = this.level - 1 + this.levelProgress;
+    // Books can contain thousands of sections. Keep their pace learnable and
+    // bounded instead of applying the ten-level arcade curve indefinitely.
+    if (this._levels) return 1 + 1.5 * (1 - Math.exp(-completedLevels / 20));
     // Progress within each level also raises the pace, avoiding a sudden jump
     // at its boundary. Endless play additionally accelerates with active time.
     return this.progression === 'endless'
@@ -175,6 +183,7 @@ export class GameEngine {
   }
 
   _spawnEnemy() {
+    if (this._levels && this._customIndex >= this._customWords.length) return;
     const sequenceIndex = this._customWords.length ? this._customIndex : this.mode === 'reading' ? this._nextId - 1 : -1;
     const word = this._chooseWord();
     const availableLanes = LANES.filter((lane) => !this.enemies.some((enemy) => Math.abs(enemy.x - lane) < 0.06));
@@ -209,12 +218,14 @@ export class GameEngine {
       if (this.mode === 'reading') this.readingIndex += 1;
       this._events.push({ type: 'damage', enemyId: enemy.id, sequenceIndex: enemy.sequenceIndex, word: enemy.word, x: enemy.x, y: 1, lives: this.lives });
       if (this.lives === 0) {
+        this._fatalTarget = { ...enemy };
         this.status = 'over';
         this.targetId = null;
         this._events.push({ type: 'over', score: this.score, wave: this.wave, level: this.level, accuracy: this.accuracy, wpm: this.wpm, x: 0.5, y: 0.5 });
         return;
       }
     }
+    if (this._completeDocumentLevel()) return;
     this._syncReadingTarget();
     this._spawnCountdown -= dt;
     // Reserve the vertical gap before emitting the next reading word.
@@ -259,7 +270,8 @@ export class GameEngine {
       if (this.mode === 'reading') this.readingIndex += 1;
       this.score += 25 * this.wave;
       this._events.push({ type: 'destroy', enemyId: target.id, sequenceIndex: target.sequenceIndex, word: target.word, x: target.x, y: target.y });
-      if (this.levelKills >= this.levelGoal) {
+      if (this._completeDocumentLevel()) return true;
+      if (!this._levels && this.levelKills >= this.levelGoal) {
         if (this.progression === 'campaign' && this.level === LEVEL_NAMES.length) {
           this.status = 'won';
           this._events.push({ type: 'victory', score: this.score, wave: this.wave, level: this.level, title: this.levelTitle, accuracy: this.accuracy, wpm: this.wpm, x: 0.5, y: 0.5 });
@@ -278,6 +290,73 @@ export class GameEngine {
       this._syncReadingTarget();
     }
     return true;
+  }
+
+  _completeDocumentLevel() {
+    if (!this._levels || this.enemies.length || this._customIndex < this._customWords.length) return false;
+    const last = this.level === this._levels.length;
+    this.status = last ? 'won' : 'transition';
+    this.targetId = null;
+    this._events.push({ type: last ? 'victory' : 'levelComplete', level: this.level, title: this.levelTitle,
+      chapterEnd: this._levels[this.level - 1].isChapterEnd, score: this.score, accuracy: this.accuracy, wpm: this.wpm, x: .5, y: .5 });
+    return true;
+  }
+
+  nextLevel() {
+    if (this.status !== 'transition' || !this._levels || this.level >= this._levels.length) return false;
+    this.wave += 1; this.levelKills = 0; this.readingIndex = 0; this._customIndex = 0;
+    this._customWords = this._levels[this.level - 1].words;
+    this.lives = Math.min(3, this.lives + 1);
+    this.status = 'playing'; this._spawnCountdown = this._spawnInterval;
+    this._announceLevel(); this._spawnEnemy(); return true;
+  }
+
+  snapshot({ retryAfterLoss = false } = {}) {
+    const fields = ['status','targetId','score','lives','wave','levelKills','kills','correct','mistakes','streak','bestStreak','elapsed','readingIndex','_nextId','_customIndex','_spawnCountdown'];
+    const state = Object.fromEntries(fields.map(key => [key, this[key]]));
+    const enemies = this.enemies.map(enemy => ({...enemy}));
+    // Continuing a document after losing retries the fatal word, including its
+    // accepted prefix. Never let an empty final page turn a loss into victory.
+    if (retryAfterLoss && this._levels && this.status === 'over' && this._fatalTarget) {
+      const target = { ...this._fatalTarget, y: .45 };
+      state.status = 'paused'; state.lives = 3; state.streak = 0;
+      state.readingIndex = Math.max(0, state.readingIndex - 1); state.targetId = target.id;
+      enemies.unshift(target);
+      for (let i = 1; i < enemies.length; i++) enemies[i].y = Math.min(enemies[i].y, enemies[i - 1].y - .08);
+    }
+    return { version: 1, options: {difficulty:this.difficulty, customText:this._sourceText, mode:this.mode, progression:this.progression, advanced:this.advanced,
+      campaignLevels:this._levels?.map(({words,...level}) => level) ?? null}, state, enemies };
+  }
+
+  static fromSnapshot(snapshot, {random = Math.random} = {}) {
+    if (!snapshot || snapshot.version !== 1 || !snapshot.options || !snapshot.state || !Array.isArray(snapshot.enemies)) throw new Error('Invalid saved game');
+    const game = new GameEngine({...snapshot.options,random});
+    const state = snapshot.state;
+    const integerFields = ['score','lives','wave','levelKills','kills','correct','mistakes','streak','bestStreak','readingIndex','_nextId','_customIndex'];
+    if (integerFields.some(key => !Number.isSafeInteger(state[key]) || state[key] < 0) || !Number.isFinite(state.elapsed) || state.elapsed < 0 || !Number.isFinite(state._spawnCountdown) || state.lives > 3 || state.wave < 1 || (game._levels && state.wave > game._levels.length) || snapshot.enemies.length > 6) throw new Error('Invalid saved game');
+    if (!['playing','paused','transition'].includes(state.status)) throw new Error('Saved game is not resumable');
+    if (snapshot.enemies.some(e => !e || typeof e.word !== 'string' || !e.word || !Number.isSafeInteger(e.id) || e.id < 1 || e.id >= state._nextId || !Number.isSafeInteger(e.progress) || e.progress < 0 || e.progress >= e.word.length || !Number.isFinite(e.x) || e.x < 0 || e.x > 1 || !Number.isFinite(e.y) || e.y >= 1 || !Number.isFinite(e.speed) || e.speed <= 0)) throw new Error('Invalid saved targets');
+    if (new Set(snapshot.enemies.map(e => e.id)).size !== snapshot.enemies.length ||
+      (state.targetId !== null && !snapshot.enemies.some(e => e.id === state.targetId)) || state.lives < 1) throw new Error('Invalid saved targets');
+    if (game._levels) {
+      const words = game._levels[state.wave - 1].words;
+      if (snapshot.options.campaignLevels.length !== game._levels.length || state._customIndex > words.length || state.readingIndex > state._customIndex ||
+        state.levelKills > state.readingIndex) throw new Error('Invalid saved document position');
+      if (state.status === 'transition' && (state.wave >= game._levels.length || snapshot.enemies.length || state._customIndex !== words.length || state.readingIndex !== words.length)) throw new Error('Invalid saved level boundary');
+      if (game.mode === 'reading') {
+        const ordered = [...snapshot.enemies].sort((a, b) => a.id - b.id);
+        if (ordered.length !== state._customIndex - state.readingIndex || ordered.some((enemy, index) => {
+          const sequence = state.readingIndex + index;
+          const prefix = enemy.word.slice(0, enemy.progress);
+          return enemy.sequenceIndex !== sequence || enemy.word !== words[sequence] || /[\uD800-\uDBFF]$/u.test(prefix);
+        }) || (state.status !== 'transition' && state.readingIndex === words.length)) throw new Error('Invalid saved document targets');
+      }
+    } else if (state.status === 'transition') throw new Error('Invalid saved level boundary');
+    for (const key of [...integerFields,'elapsed','_spawnCountdown','targetId']) game[key] = state[key];
+    if (game._levels) game._customWords = game._levels[game.level - 1].words;
+    game.enemies = snapshot.enemies.map(e => ({...e}));
+    game.status = state.status === 'transition' ? 'transition' : 'paused';
+    game._events = []; game._syncReadingTarget(); return game;
   }
 
   drainEvents() {

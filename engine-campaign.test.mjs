@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {GameEngine} from './engine.mjs';
+const levels=[{title:'Chapter I',text:'É, sol!',isChapterEnd:true},{title:'Chapter II',text:'Lua.'}];
+const make=()=>new GameEngine({mode:'reading',advanced:true,campaignLevels:levels,random:()=>.5}).start();
+test('finite levels end at their last token and wait for transition',()=>{const g=make();for(const c of 'É,sol!')g.typeChar(c);assert.equal(g.status,'transition');assert.equal(g.enemies.length,0);g.tick(.1);assert.equal(g.level,1);assert.equal(g.nextLevel(),true);assert.equal(g.level,2);for(const c of 'Lua.')g.typeChar(c);assert.equal(g.status,'won');assert.equal(g.nextLevel(),false);});
+test('restore keeps partial word, elapsed time, score and ordering exactly',()=>{const g=make();g.typeChar('É');g.tick(.1);const saved=g.snapshot();const resumed=GameEngine.fromSnapshot(JSON.parse(JSON.stringify(saved)));assert.equal(resumed.status,'paused');assert.deepEqual(resumed.enemies,g.enemies);assert.equal(resumed.elapsed,g.elapsed);assert.equal(resumed.score,g.score);resumed.resume();resumed.typeChar(',');assert.equal(resumed.kills,1);});
+test('continue at level boundary and reject broken snapshots',()=>{const g=make();for(const c of 'É,sol!')g.typeChar(c);const resumed=GameEngine.fromSnapshot(g.snapshot());assert.equal(resumed.status,'transition');resumed.nextLevel();assert.equal(resumed.enemies[0].word,'Lua.');assert.throws(()=>GameEngine.fromSnapshot({version:1,state:{},options:{},enemies:[]}));});
+test('lost last token completes finite section without repeating',()=>{const g=new GameEngine({mode:'reading',campaignLevels:[{title:'one',text:'a'},{title:'two',text:'b'}]}).start();g.enemies[0].y=.999;g.tick(.1);assert.equal(g.status,'transition');assert.equal(g.lives,2);});

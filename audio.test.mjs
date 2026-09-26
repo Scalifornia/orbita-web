@@ -177,3 +177,59 @@ test('word destruction plays the supplied explosion and respects mute and pause'
   audio.setScene('paused'); assert.equal(audio.effect('destroy'), false);
   audio.setScene('game'); audio.setEnabled(false); assert.equal(audio.effect('destroy'), false);
 });
+
+test('new event cues are silent before unlock and respect pause, mute and off', async (t) => {
+  setup(t); const audio = new GameAudio();
+  for (const cue of ['combo', 'gameover', 'start']) assert.equal(audio.effect(cue), false);
+  await audio.unlock();
+  for (const scene of ['paused', 'off']) {
+    audio.setScene(scene);
+    for (const cue of ['combo', 'gameover', 'start']) assert.equal(audio.effect(cue), false);
+  }
+  audio.setScene('game'); audio.setEnabled(false);
+  for (const cue of ['combo', 'gameover', 'start']) assert.equal(audio.effect(cue), false);
+  assert.equal(audio.context.started.length, 0);
+});
+
+test('combo is rate limited and game over is a finite descending cue', async (t) => {
+  setup(t); const audio = new GameAudio(); await audio.unlock();
+  assert.equal(audio.effect('combo', 2), true);
+  assert.equal(audio.context.started.length, 3);
+  assert.equal(audio.effect('combo', 2), false);
+  audio.context.advance(.4);
+  assert.equal(audio.effect('combo', 3), true);
+  audio.context.advance(1);
+  const before = audio.context.started.length;
+  assert.equal(audio.effect('gameover'), true);
+  const notes = audio.context.started.slice(before);
+  assert.equal(notes.length, 4);
+  assert.ok(notes.every((note, i) => i === 0 || note.frequency.value < notes[i - 1].frequency.value));
+  assert.ok(notes.every(note => note.stopAt > note.started.at && note.stopAt < 2));
+  audio.context.advance(2);
+  assert.equal(audio._effects.size, 0);
+});
+
+test('explosion overlap is bounded and its tail stops within one second', async (t) => {
+  const io = setup(t); const audio = new GameAudio(); await audio.unlock();
+  await io.resolve('explosion.mp3', buffer(8));
+  assert.equal(audio.effect('destroy'), true);
+  assert.equal(audio.effect('destroy'), false);
+  assert.ok(audio.context.started.at(-1).stopAt < 1);
+  assert.equal(audio.effect('damage'), true);
+  assert.equal(audio.effect('damage'), false);
+  for (let i = 0; i < 30; i++) audio.effect('gameover');
+  assert.ok(audio._effects.size <= 18);
+  audio.context.advance(2);
+  assert.equal(audio._effects.size, 0);
+});
+
+test('event ducking does not overwrite separate player volume preferences', async (t) => {
+  const io = setup(t); const audio = new GameAudio({ musicVolume: .17, sfxVolume: .63 }); await audio.unlock();
+  await io.resolve('menu-loop.wav');
+  audio.effect('victory');
+  assert.equal(audio.musicVolume, .17); assert.equal(audio._musicBus.gain.value, .17);
+  assert.equal(audio.sfxVolume, .63); assert.equal(audio._sfxBus.gain.value, .63);
+  // The scheduled recovery ends at full level on its dedicated bus.
+  assert.equal(audio._musicDuck.gain.value, 1);
+  audio.setScene('paused'); assert.equal(audio._musicDuck.gain.value, 1);
+});

@@ -1,7 +1,13 @@
 import { GameEngine, normalizeText, wordsFromText } from './engine.mjs';
 import { TypingInput } from './input.mjs';
 import { stories } from './stories.mjs';
-import { translatePage, t, setLanguage } from './locale.mjs';
+import { setupMenu } from './interface.mjs';
+import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs';
+import { Adventure } from './adventure.mjs';
+import { setupLibrary } from './library.mjs';
+import { documentFromText } from './documentImport.mjs';
+import { SceneRenderer } from './scenery.mjs';
+import { LevelTransition } from './transitions.mjs';
 import { GameAudio } from './audio.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -29,8 +35,10 @@ let progression = readSaved('orbita-progression', 'campaign');
 if (!['campaign', 'endless'].includes(progression)) progression = 'campaign';
 let customText = readSaved('orbita-text', '');
 if (typeof customText !== 'string') customText = '';
-let uiLanguage = readSaved('orbita-ui-language', 'pt') === 'en' ? 'en' : 'pt';
-let textLanguage = readSaved('orbita-text-language', 'pt') === 'en' ? 'en' : 'pt';
+let uiLanguage = readSaved('orbita-ui-language', 'pt');
+if (!Object.hasOwn(supportedLanguages,uiLanguage)) uiLanguage='pt';
+let textLanguage = readSaved('orbita-text-language', 'pt');
+if (!Object.hasOwn(supportedLanguages,textLanguage)) textLanguage='pt';
 let world = readSaved('orbita-world', 'space') === 'earth' ? 'earth' : 'space';
 let story = readSaved('orbita-story', world === 'earth' ? 'lion' : 'hare');
 if (!stories[story]) story = 'hare';
@@ -42,6 +50,11 @@ let sfxVolume = Math.min(1, Math.max(0, Number(readSaved('orbita-sfx-volume', 0.
 const sound = new GameAudio({ enabled: soundOn, musicVolume, sfxVolume });
 sound.setScene('menu');
 let audioReady = false;
+let menuUI = null;
+const adventure = new Adventure();
+const scenery = new SceneRenderer();
+const transition = new LevelTransition();
+let transitionPaused = false, saveTimer = null;
 let game = new GameEngine();
 let width = 1, height = 1, lastTime = 0, clock = 0;
 let projectiles = [], particles = [], rings = [];
@@ -56,17 +69,10 @@ const playerShip = new Image();
 playerShip.src = './assets/player-ship.png';
 const tank = new Image(); tank.src = './assets/tank-player.png';
 
-const stars = Array.from({ length: 110 }, (_, i) => ({
-  x: ((Math.sin(i * 127.1 + 12) * 43758.54) % 1 + 1) % 1,
-  y: ((Math.sin(i * 311.7 + 55) * 9512.41) % 1 + 1) % 1,
-  size: i % 17 === 0 ? 1.5 : i % 3 === 0 ? 1 : 0.55,
-  alpha: 0.12 + (i % 7) * 0.07,
-}));
-
 const earthLevels = ['Vale verde', 'Trilho do bosque', 'Ponte antiga', 'Colina dourada', 'Rio tranquilo', 'Montanha azul', 'Floresta profunda', 'Caminho de pedra', 'Horizonte verde', 'Regresso a casa'];
-function levelTitle(level) { return t(world === 'earth' ? earthLevels[(level - 1) % 10] : game.levelTitle); }
+function levelTitle(level) { return adventure.campaign ? game.levelTitle : t(world === 'earth' ? earthLevels[(level - 1) % 10] : game.levelTitle); }
 function recordKey() {
-  return `orbita-v3-best-${difficulty}-${mode}-${progression}-${world}-${textLanguage}-${advanced}-${customText ? 'custom-' + textHash(customText) : story}`;
+  return `orbita-v3-best-${difficulty}-${mode}-${progression}-${world}-${textLanguage}-${advanced}-${adventure.campaign ? adventure.campaign.id : customText ? 'custom-' + textHash(customText) : story}`;
 }
 function textHash(value) { let hash = 2166136261; for (const char of value) hash = Math.imul(hash ^ char.codePointAt(0), 16777619); return (hash >>> 0).toString(16); }
 function rankingKey() { return recordKey().replace('best', 'ranking'); }
@@ -74,9 +80,9 @@ function rankingRows() { const rows = readSaved(rankingKey(), []); return Array.
 function showRanking() {
   $('rankingConfig').textContent = [t(world === 'earth' ? 'Terra' : 'Espaço'), textLanguage.toUpperCase(), t(advanced ? 'Avançada' : 'Básica'), t(difficultyNames[difficulty]), t(modeNames[mode]), t(progression === 'campaign' ? 'Campanha' : 'Infinito'), customText ? t('Texto personalizado') : stories[story][textLanguage].title].join(' · ');
   const rows = rankingRows(); $('rankingList').replaceChildren();
-  for (const row of rows) { const li = document.createElement('li'); li.textContent = `${row.score} ${t('pontos')} · ${Math.round(row.accuracy)}% · ${Math.round(row.wpm)} ${t('pal./min')} · ${new Date(row.date).toLocaleDateString(uiLanguage === 'pt' ? 'pt-PT' : 'en-GB')}`; $('rankingList').append(li); }
+  for (const row of rows) { const li = document.createElement('li'); li.textContent = `${row.score} ${t('pontos')} · ${Math.round(row.accuracy)}% · ${Math.round(row.wpm)} ${t('pal./min')} · ${new Date(row.date).toLocaleDateString(languageTags[uiLanguage])}`; $('rankingList').append(li); }
   $('rankingStatus').textContent = rows.length ? '' : t('Ainda não há partidas nesta configuração.');
-  $('rankingDialog').showModal();
+  $('optionsDialog').close(); $('rankingDialog').showModal();
 }
 function updateMenu() {
   document.body.classList.toggle('earth', world === 'earth');
@@ -93,7 +99,10 @@ function updateMenu() {
   document.querySelectorAll('[data-progression]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.progression === progression)));
   $('recordValue').textContent = String(Number(readSaved(recordKey(), 0)) || 0).padStart(5, '0');
   $('recordCaption').textContent = `${difficultyNames[difficulty]} · ${progression === 'campaign' ? 'campanha' : 'infinito'}${customText ? ' · teu texto' : ''}`;
-  $('customButton').textContent = customText ? 'O teu texto está pronto ✓' : 'Usar o meu texto +';
+  $('customButton').textContent = 'Carregar texto/documento';
+  $('campaignLengthLabel').textContent=t(mode==='reading'?'História completa':'10 níveis');
+  const savedAdventure = adventure.summary();
+  menuUI?.sync({language:uiLanguage, summary: `${t(world === 'earth' ? 'Terra' : 'Espaço')} · ${customText ? t('Texto personalizado') : stories[story][textLanguage].title}`, resume:savedAdventure ? `${savedAdventure.title} · ${t('Capítulo {number}',{number:savedAdventure.chapter})} · ${Math.round(savedAdventure.percent)}%` : ''});
   const instruction = document.querySelector('.instructions p');
   instruction.replaceChildren(
     document.createTextNode(mode === 'reading' ? 'Acompanha o texto.' : 'Escolhe um alvo.'),
@@ -183,6 +192,7 @@ const typing = new TypingInput(input, (text) => {
   typing.format(typedDisplay);
   updateTypedEcho();
   updateHud();
+  queueSave();
 });
 
 function focusInput() {
@@ -190,58 +200,94 @@ function focusInput() {
   input.focus({ preventScroll: true });
   input.setSelectionRange(input.value.length, input.value.length);
 }
-function startGame() {
-  const source = customText || stories[story][textLanguage].text;
-  textTokens = advanced ? wordsFromText(source, true) : (source.normalize('NFC').match(/\p{L}+[\p{M}]*(?:[^\p{L}\p{N}]*|$)/gu) || []);
-  typing.exact = advanced;
-  game = new GameEngine({ difficulty, mode, progression, advanced, customText: source });
-  projectiles = []; particles = []; rings = []; ghosts.clear(); snapshots.clear(); flashes.clear();
-  lastHudKey = ''; lastReadingKey = ''; damageFlash = 0;
-  glyphFragments = []; destroyedLetters.clear(); typedDisplay = ''; pendingFinish = null;
-  resultBest = Number(readSaved(recordKey(), 0)) || 0;
-  typing.reset();
-  $('startPanel').hidden = true; $('resultPanel').hidden = true; $('pausePanel').hidden = true;
-  $('readingStrip').hidden = mode !== 'reading';
-  $('typingDock').classList.toggle('reading', mode === 'reading');
-  game.start();
-  // Synchronous focus in the user's tap handler is required by mobile Safari.
-  focusInput(); unlockAudio();
-  sound.setScene('game');
-  $('pauseButton').disabled = false;
-  $('releaseButton').disabled = mode === 'reading';
-  input.placeholder = mode === 'reading' ? 'Escreve a palavra destacada…' : 'Escreve uma palavra para disparar…';
-  handleEvents(); updateHud(); updateTypedEcho();
+function settings() { return {difficulty,mode,progression,advanced,world,textLanguage,story}; }
+function saveProgress() {
+  clearTimeout(saveTimer); saveTimer=null;
+  if (!adventure.campaign) return;
+  const saved=adventure.save(game,typedDisplay);
+  menuUI?.status(saved ? '' : 'Não foi possível guardar o progresso.');
 }
-
-function pause(reason = 'Retoma quando estiveres pronto.') {
-  if (game.status !== 'playing') return;
-  game.pause();
-  sound.setScene('paused');
-  $('pauseReason').textContent = reason;
-  $('pausePanel').hidden = false;
-  $('pauseButton').disabled = true;
-  input.blur();
-  $('resumeButton').focus({ preventScroll: true });
+function queueSave() { if (adventure.campaign && !saveTimer) saveTimer=setTimeout(saveProgress,250); }
+function setReadingSource() {
+  const source=adventure.campaign?.levels[game.level-1]?.text || customText || stories[story][textLanguage].text;
+  textTokens=advanced ? wordsFromText(source,true) : (source.normalize('NFC').match(/\p{L}+[\p{M}]*(?:[^\p{L}\p{N}]*|$)/gu)||[]);
+  lastReadingKey='';
+}
+function activateGame(restoredText='') {
+  transition.clear(); transitionPaused=false;
+  projectiles=[];particles=[];rings=[];ghosts.clear();snapshots.clear();flashes.clear();
+  lastHudKey='';lastReadingKey='';damageFlash=0;
+  glyphFragments=[];destroyedLetters.clear();typedDisplay=restoredText;pendingFinish=null;
+  resultBest=Number(readSaved(recordKey(),0))||0;
+  typing.exact=advanced;typing.reset();typing.format(typedDisplay);typing.applyFormat();setReadingSource();
+  $('startPanel').hidden=true;$('resultPanel').hidden=true;$('pausePanel').hidden=true;$('levelCompletion').hidden=true;
+  $('readingStrip').hidden=mode!=='reading';$('typingDock').classList.toggle('reading',mode==='reading');
+  $('campaignProgress').hidden=!adventure.campaign;
+  // Keep focus synchronous with the initiating tap for mobile Safari.
+  focusInput();unlockAudio();sound.setScene('game');scenery.enter(clock);tone('start');
+  $('pauseButton').disabled=false;$('releaseButton').disabled=mode==='reading';
+  input.placeholder=t(mode==='reading'?'Escreve a palavra destacada…':'Escreve uma palavra para disparar…');
+  handleEvents();updateHud();updateTypedEcho();translatePage();
+}
+function beginDocument(document) {
+  mode='reading';progression='campaign';
+  game=adventure.begin(document,settings());updateMenu();activateGame();saveProgress();
+}
+function startGame() {
+  const source=customText || stories[story][textLanguage].text;
+  if(mode==='reading' && progression==='campaign') {
+    beginDocument(documentFromText(source,customText?t('Texto personalizado'):stories[story][textLanguage].title));return;
+  }
+  adventure.detach();game=new GameEngine({difficulty,mode,progression,advanced,customText:source}).start();activateGame();
+}
+function continueGame() {
+  const saved=adventure.resume();if(!saved)return;
+  ({difficulty,world,textLanguage,story,advanced}=saved.settings);mode='reading';progression='campaign';
+  game=saved.engine;if(game.status==='paused')game.resume();
+  updateMenu();activateGame(saved.typedDisplay);
+  if(game.status==='transition')beginTransition();
+}
+function pause(reason='Retoma quando estiveres pronto.') {
+  if (!['playing','transition'].includes(game.status) || transitionPaused) return;
+  if(game.status==='transition')transitionPaused=true;else game.pause();
+  saveProgress();sound.setScene('paused');$('pauseReason').textContent=t(reason);
+  $('pausePanel').hidden=false;$('levelCompletion').hidden=true;$('pauseButton').disabled=true;
+  input.blur();$('resumeButton').focus({preventScroll:true});
 }
 function resume() {
-  if (game.status !== 'paused') return;
-  game.resume(); $('pausePanel').hidden = true; $('pauseButton').disabled = false;
-  focusInput(); unlockAudio();
-  sound.setScene('game');
+  if(game.status!=='paused'&&!transitionPaused)return;
+  if(game.status==='paused')game.resume();transitionPaused=false;
+  $('pausePanel').hidden=true;$('pauseButton').disabled=false;
+  focusInput();unlockAudio();sound.setScene('game');
 }
 function menu() {
-  game = new GameEngine();
-  sound.setScene('menu');
-  glyphFragments = []; destroyedLetters.clear(); typedDisplay = ''; pendingFinish = null;
-  projectiles = []; particles = []; rings = []; ghosts.clear(); snapshots.clear(); flashes.clear();
-  $('pausePanel').hidden = true; $('resultPanel').hidden = true; $('startPanel').hidden = false;
-  $('readingStrip').hidden = true; $('typingDock').classList.remove('reading');
-  $('pauseButton').disabled = true; $('releaseButton').disabled = true;
-  typing.reset(); input.disabled = true; input.placeholder = 'O teu teclado é o comando.';
-  $('waveToast').classList.remove('visible'); toastUntil = 0;
-  lastHudKey = ''; updateMenu(); updateHud(); updateTypedEcho();
-  $('startButton').focus({ preventScroll: true });
+  saveProgress();adventure.detach();transition.clear();transitionPaused=false;
+  game=new GameEngine();sound.setScene('menu');
+  glyphFragments=[];destroyedLetters.clear();typedDisplay='';pendingFinish=null;
+  projectiles=[];particles=[];rings=[];ghosts.clear();snapshots.clear();flashes.clear();
+  $('pausePanel').hidden=true;$('resultPanel').hidden=true;$('startPanel').hidden=false;$('levelCompletion').hidden=true;
+  $('campaignProgress').hidden=true;$('readingStrip').hidden=true;$('typingDock').classList.remove('reading');
+  $('pauseButton').disabled=true;$('releaseButton').disabled=true;
+  typing.reset();input.disabled=true;input.placeholder=t('O teu teclado é o comando.');
+  $('waveToast').classList.remove('visible');toastUntil=0;
+  lastHudKey='';updateMenu();updateHud();updateTypedEcho();translatePage();
+  $('startButton').focus({preventScroll:true});
 }
+function beginTransition() {
+  const level=adventure.campaign?.levels[game.level-1];if(!level)return;
+  $('completionTag').textContent=t(level.isChapterEnd?'Capítulo concluído':'Nível concluído');
+  $('completionTitle').textContent=level.title;
+  $('completionStats').textContent=`${game.score} ${t('pontos')} · ${Math.round(game.accuracy)}% · ${Math.round(game.wpm)} ${t('pal./min')}`;
+  const percent=Math.round(adventure.percent(game));
+  $('completionFill').style.width=`${percent}%`;$('completionProgress').textContent=`${percent}%`;
+  transition.start(clock,{}, {chapter:level.isChapterEnd,reducedMotion});saveProgress();
+}
+function advanceLevel() {
+  if(game.status!=='transition')return;
+  game.nextLevel();setReadingSource();lastHudKey='';
+  typing.reset();typedDisplay='';updateTypedEcho();handleEvents();saveProgress();
+}
+
 function finish() {
   const rows = [...rankingRows(), { score: game.score, accuracy: game.accuracy, wpm: game.wpm, date: new Date().toISOString() }].sort((a, b) => b.score - a.score || b.accuracy - a.accuracy).slice(0, 10);
   const rankingSaved = save(rankingKey(), rows);
@@ -252,10 +298,10 @@ function finish() {
   $('resultTag').textContent = isBest ? (saved ? 'NOVO RECORDE. BEM VOADO.' : 'NOVO RECORDE NESTA PARTIDA.') : 'A PRÓXIMA VAGA É TUA.';
   const victory = game.status === 'won';
   $('resultHeading').textContent = victory ? 'Órbita conquistada.' : 'Missão terminada.';
-  if (victory) $('resultTag').textContent = '10 NÍVEIS. MISSÃO CUMPRIDA.';
+  if (victory) { $('resultTag').textContent = t(adventure.campaign ? 'Campanha concluída' : '10 NÍVEIS. MISSÃO CUMPRIDA.'); if(adventure.campaign)adventure.complete(); } else saveProgress();
   sound.setScene('menu');
-  if (victory) tone('victory');
-  $('resultScore').textContent = game.score.toLocaleString('pt-PT');
+  tone(victory ? 'victory' : 'gameover');
+  $('resultScore').textContent = game.score.toLocaleString(languageTags[uiLanguage]);
   $('resultWave').textContent = game.wave;
   $('resultAccuracy').textContent = `${Math.round(game.accuracy)}%`;
   $('resultWpm').textContent = Math.round(game.wpm);
@@ -272,6 +318,7 @@ function handleEvents() {
       projectiles.push({ enemyId: event.enemyId, progress: event.progress, letterIndex: event.progress - event.letter.length, x: origin.x, y: origin.y - 27, age: 0, duration: 0.1 + Math.min(0.065, height / 7000), done: false, finish: false });
       flashes.set('ship', clock + 0.08);
       tone('shot');
+      if(game.streak>0 && game.streak%20===0) { sound.effect('combo',Math.min(5,game.streak/20));$('combo').classList.remove('combo-pop');void $('combo').offsetWidth;$('combo').classList.add('combo-pop'); }
     } else if (event.type === 'destroy') {
       typedDisplay += ' ';
       const enemy = snapshots.get(event.enemyId);
@@ -286,7 +333,10 @@ function handleEvents() {
       const position = point(event);
       burst(position.x, Math.min(height - 35, position.y), true, '#ff845e');
       damageFlash = 0.28; tone('damage');
+    } else if (event.type === 'levelComplete') {
+      beginTransition();
     } else if (event.type === 'wave') {
+      scenery.enter(clock);
       $('waveToast').textContent = `NÍVEL ${String(event.level).padStart(2, '0')} · ${levelTitle(event.level).toUpperCase()}`;
       $('waveToast').classList.add('visible'); toastUntil = clock + 2.4;
       if (event.level > 1) tone('level');
@@ -306,6 +356,7 @@ function updateReading() {
   lastReadingKey = key;
   const fragment = document.createDocumentFragment();
   for (let offset = Math.max(-3, -index); offset <= 11; offset++) {
+    if(adventure.campaign && index+offset>=textTokens.length)break;
     const token = textTokens[(index + offset) % textTokens.length];
     const span = document.createElement('span');
     span.className = offset < 0 ? 'read-done' : offset === 0 ? 'read-current' : '';
@@ -333,7 +384,7 @@ function updateHud() {
   $('waveValue').textContent = String(game.wave).padStart(2, '0');
   $('speedValue').textContent = `${game.speedMultiplier.toFixed(2)}×`;
   $('levelName').textContent = `${String(game.level).padStart(2, '0')} / ${levelTitle(game.level).toUpperCase()}`;
-  $('levelCount').textContent = `${game.levelKills} / ${game.levelGoal}`;
+  $('levelCount').textContent = `${adventure.campaign ? game.readingIndex : game.levelKills} / ${game.levelGoal}`;
   $('levelFill').style.width = `${game.levelProgress * 100}%`;
   sound.setIntensity(game.speedMultiplier);
   $('shields').setAttribute('aria-label', `${game.lives} vidas`);
@@ -341,6 +392,7 @@ function updateHud() {
   $('accuracyValue').textContent = `${Math.round(game.accuracy)}% · ESPAÇOS AUTO`;
   $('combo').textContent = game.streak >= 5 ? `${game.streak} LETRAS SEGUIDAS ↗` : '';
   $('targetHint').textContent = game.status === 'ready' ? 'COMPUTADOR OU TELEMÓVEL. TU ESCOLHES.' : target ? `ALVO: ${target.word} · ${target.progress}/${target.word.length}` : 'ESCOLHE UMA PALAVRA E COMEÇA A ESCREVER';
+  if(adventure.campaign) { $('campaignTitle').textContent=adventure.campaign.title;$('campaignPercent').textContent=`${Math.round(adventure.percent(game))}%`; }
   updateReading();
 }
 
@@ -422,85 +474,11 @@ function updateEffects(dt) {
 }
 
 function drawBackground(time) {
-  if (world === 'earth') {
-    const sky = ctx.createLinearGradient(0, 0, 0, height); sky.addColorStop(0, '#152a39'); sky.addColorStop(.45, '#8d9169'); sky.addColorStop(1, '#263c26'); ctx.fillStyle = sky; ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = '#e4bb6970'; ctx.beginPath(); ctx.arc(width * .8, height * .16, 35, 0, Math.PI * 2); ctx.fill();
-    for (let layer = 0; layer < 3; layer++) { ctx.fillStyle = ['#415c50','#334d38','#243b28'][layer]; ctx.beginPath(); ctx.moveTo(0,height); for(let x=0;x<=width+20;x+=20) ctx.lineTo(x,height*(.24+layer*.12)+Math.sin(x/90+layer*2)*28); ctx.lineTo(width,height); ctx.fill(); }
-    ctx.fillStyle = '#94865b44'; ctx.beginPath(); ctx.moveTo(width*.48,height*.35); ctx.lineTo(width*.54,height*.35); ctx.lineTo(width*.87,height); ctx.lineTo(width*.12,height); ctx.fill();
-    ctx.strokeStyle='#c3cd9866'; ctx.setLineDash([4,7]); ctx.beginPath();ctx.moveTo(12,height-68);ctx.lineTo(width-12,height-68);ctx.stroke();ctx.setLineDash([]);
-    return;
-  }
-  ctx.fillStyle = '#090d21'; ctx.fillRect(0, 0, width, height);
-  const nebula = ctx.createRadialGradient(width * .7, height * .22, 5, width * .6, height * .3, width * .76);
-  nebula.addColorStop(0, '#672d9a64'); nebula.addColorStop(.45, '#27256935'); nebula.addColorStop(1, '#060e2100');
-  ctx.fillStyle = nebula; ctx.fillRect(0, 0, width, height);
-  const horizon = height * .70;
-  const haze = ctx.createRadialGradient(width * .35, horizon, 0, width * .35, horizon, width * .55);
-  haze.addColorStop(0, '#16788b20'); haze.addColorStop(1, '#08243400'); ctx.fillStyle = haze; ctx.fillRect(0, 0, width, height);
-  // An orbital sun and luminous rings set the cyberpunk palette.
-  const px = width * .8, py = height * .22, radius = Math.min(width * .15, 113);
-  ctx.save(); ctx.translate(px, py); ctx.rotate(-.45);
-  ctx.lineWidth = .8; ctx.strokeStyle = '#ac70ff40';
-  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(0, 0, radius * (1.6 + i * .23), radius * (.46 + i * .1), 0, 0, Math.PI * 2); ctx.stroke(); }
-  ctx.restore();
-  const sun = ctx.createLinearGradient(px, py - radius, px, py + radius);
-  sun.addColorStop(0, '#ff8e563e'); sun.addColorStop(.5, '#ae48af29'); sun.addColorStop(1, '#48267e0a');
-  ctx.fillStyle = sun; ctx.strokeStyle = '#b971ff4d';
-  ctx.beginPath(); ctx.arc(px, py, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.save(); ctx.beginPath(); ctx.arc(px, py, radius, 0, Math.PI * 2); ctx.clip();
-  ctx.strokeStyle = '#fe927929';
-  for (let y = py; y < py + radius; y += 9) { ctx.beginPath(); ctx.moveTo(px - radius, y); ctx.lineTo(px + radius, y); ctx.stroke(); }
-  ctx.restore();
-  const pace = game.status === 'playing' ? game.speedMultiplier : 1;
-  for (const star of stars) {
-    const drift = reducedMotion ? 0 : time * (star.size * .009);
-    const y = ((star.y + drift) % 1) * height;
-    ctx.globalAlpha = star.alpha * 1.25; ctx.fillStyle = star.size > 1 ? '#eb95ff' : '#80dfff';
-    ctx.fillRect(star.x * width, y, star.size, star.size + (game.status === 'playing' ? Math.min(4, pace) : 0));
-    if (star.size > 1) { ctx.globalAlpha *= .4; ctx.fillRect(star.x * width - 3, y + .5, 7, .5); }
-  }
-  ctx.globalAlpha = 1;
-  // A perspective grid, kept faint beneath the targets.
-  ctx.strokeStyle = '#6b5cfa22'; ctx.lineWidth = .6;
-  for (let i = -6; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(width / 2 + i * 20, horizon); ctx.lineTo(width / 2 + i * width / 5, height); ctx.stroke(); }
-  for (let i = 0; i < 8; i++) {
-    const phase = (i / 8 + (reducedMotion ? 0 : time * .024)) % 1;
-    const y = horizon + phase * phase * (height - horizon);
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-  }
-  ctx.strokeStyle = '#55e6ff46'; ctx.setLineDash([2, 7]); ctx.beginPath(); ctx.moveTo(16, height - 68); ctx.lineTo(width - 16, height - 68); ctx.stroke(); ctx.setLineDash([]);
-  ctx.font = '7px "Space Grotesk", monospace'; ctx.fillStyle = '#66acbf88'; ctx.textAlign = 'left'; ctx.fillText(t('LINHA DE DEFESA'), 17, height - 76);
+  scenery.drawBackground(ctx,{width,height,time,world,playing:game.status==='playing',speed:game.speedMultiplier,reducedMotion});
 }
-
 function drawShip(time) {
-  const position = shipPosition();
-  if (world === 'earth' && tank.complete && tank.naturalWidth) {
-    ctx.save(); ctx.drawImage(tank, position.x - 45, position.y - 65, 90, 100); ctx.restore();
-    if ((flashes.get('ship') || 0) > clock) { ctx.fillStyle = '#fff3aa'; ctx.beginPath(); ctx.arc(position.x, position.y - 64, 7, 0, Math.PI * 2); ctx.fill(); }
-    return;
-  }
-  const shooting = (flashes.get('ship') || 0) > clock;
-  const size = width < 480 ? 74 : 96;
-  ctx.save(); ctx.translate(position.x, position.y);
-  const glow = ctx.createRadialGradient(0, 9, 0, 0, 9, size * .85);
-  glow.addColorStop(0, shooting ? '#6bf6ff70' : '#588eff32'); glow.addColorStop(.45, '#8259ff15'); glow.addColorStop(1, '#582aff00');
-  ctx.fillStyle = glow; ctx.fillRect(-size, -size, size * 2, size * 2);
-  const flame = 9 + (reducedMotion ? 0 : Math.sin(time * 18) * 3);
-  for (const dx of [-size * .16, size * .16]) {
-    const exhaust = ctx.createLinearGradient(dx, size * .28, dx, size * .45 + flame);
-    exhaust.addColorStop(0, '#74f8ffbb'); exhaust.addColorStop(1, '#ac65ff00');
-    ctx.fillStyle = exhaust; ctx.beginPath(); ctx.moveTo(dx - 4, size * .25); ctx.lineTo(dx, size * .42 + flame); ctx.lineTo(dx + 4, size * .25); ctx.fill();
-  }
-  if (playerShip.complete && playerShip.naturalWidth) {
-    ctx.shadowColor = '#3872df'; ctx.shadowBlur = reducedMotion ? 0 : 8;
-    ctx.drawImage(playerShip, -size / 2, -size * .43, size, size * .869);
-  } else {
-    ctx.fillStyle = '#89e6ff'; ctx.beginPath(); ctx.moveTo(0, -28); ctx.lineTo(22, 19); ctx.lineTo(0, 12); ctx.lineTo(-22, 19); ctx.closePath(); ctx.fill();
-  }
-  if (shooting) { ctx.shadowColor = '#4dffff'; ctx.shadowBlur = 14; ctx.fillStyle = '#fffaff'; ctx.beginPath(); ctx.arc(0, -size * .43, 3, 0, Math.PI * 2); ctx.fill(); }
-  ctx.restore();
+  scenery.drawPlayer(ctx,{width,height,time,world,playing:game.status==='playing',reducedMotion,position:shipPosition(),shooting:(flashes.get('ship')||0)>clock,ship:playerShip,tank});
 }
-
 function drawEnemy(enemy, demo = false) {
   const { x, y, fontSize, half } = point(enemy);
   const active = !demo && enemy.id === game.targetId;
@@ -570,16 +548,22 @@ function drawEffects() {
 function frame(timestamp) {
   const dt = Math.min((timestamp - (lastTime || timestamp)) / 1000, 0.05);
   lastTime = timestamp;
-  const frozen = game.status === 'paused';
+  const frozen = game.status === 'paused' || transitionPaused || document.hidden;
   if (!frozen) clock += dt;
-  snapshot(); game.tick(dt); handleEvents();
+  snapshot();if(!frozen && transition.startedAt===null)game.tick(dt);handleEvents();
+  if(!frozen && transition.startedAt!==null) {
+    const step=transition.sample(clock);if(step.advance)advanceLevel();
+    $('levelCompletion').hidden=!step.active;$('levelCompletion').style.opacity=step.opacity;
+    for(const element of $('levelCompletion').children)element.style.visibility=step.showSummary?'visible':'hidden';
+    if(!step.active)transition.clear();
+  }
   if (!frozen) updateEffects(dt);
   if (pendingFinish !== null && clock >= pendingFinish) { pendingFinish = null; finish(); }
   updateHud(); drawBackground(reducedMotion ? 0 : clock);
   if (game.status === 'ready') {
-    drawEnemy({ id: -1, word: world === 'earth' ? (textLanguage === 'pt' ? 'floresta' : 'forest') : (textLanguage === 'pt' ? 'universo' : 'universe'), progress: 0, x: .16, y: .18 + Math.sin(clock * .2) * .025 }, true);
-    drawEnemy({ id: -2, word: textLanguage === 'pt' ? 'descobrir' : 'discover', progress: 0, x: .85, y: .49 + Math.sin(clock * .25) * .025 }, true);
-    drawEnemy({ id: -3, word: textLanguage === 'pt' ? 'horizonte' : 'horizon', progress: 0, x: .19, y: .79 }, true);
+    drawEnemy({ id: -1, word: previewWords[textLanguage][world], progress: 0, x: .16, y: .18 + Math.sin(clock * .2) * .025 }, true);
+    drawEnemy({ id: -2, word: previewWords[textLanguage].discover, progress: 0, x: .85, y: .49 + Math.sin(clock * .25) * .025 }, true);
+    drawEnemy({ id: -3, word: previewWords[textLanguage].horizon, progress: 0, x: .19, y: .79 }, true);
   } else {
     for (const enemy of game.enemies) drawEnemy(enemy);
     for (const ghost of ghosts.values()) drawEnemy(ghost);
@@ -593,7 +577,9 @@ function frame(timestamp) {
 }
 
 $('startButton').addEventListener('click', startGame);
-$('retryButton').addEventListener('click', startGame);
+$('retryButton').addEventListener('click', () => adventure.record ? continueGame() : startGame());
+$('continueButton').addEventListener('click',continueGame);
+$('nextLevelButton').addEventListener('click',()=>{advanceLevel();transition.clear();$('levelCompletion').hidden=true;focusInput();});
 $('pauseButton').addEventListener('click', () => pause());
 $('resumeButton').addEventListener('click', resume);
 $('exitButton').addEventListener('click', menu);
@@ -607,17 +593,18 @@ for (const id of ['releaseButton', 'soundButton']) {
 canvas.addEventListener('pointerdown', () => { if (game.status === 'playing') focusInput(); });
 input.addEventListener('keydown', (event) => { if (event.key === 'Enter') event.preventDefault(); });
 input.addEventListener('blur', () => {
-  if (game.status === 'playing') pause('O teclado perdeu o foco. Toca em continuar para retomar.');
+  if (['playing','transition'].includes(game.status)) pause('O teclado perdeu o foco. Toca em continuar para retomar.');
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { pause('A missão ficou em pausa enquanto estavas fora.'); sound.setScene('paused'); }
   else sound.setScene(game.status === 'playing' ? 'game' : game.status === 'paused' ? 'paused' : 'menu');
 });
+window.addEventListener('pagehide',saveProgress);
 window.addEventListener('blur', () => { if (!coarsePointer) pause('A missão ficou em pausa enquanto estavas fora.'); });
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || document.querySelector('dialog[open]')) return;
-  if (game.status === 'playing') { event.preventDefault(); pause(); }
-  else if (game.status === 'paused') { event.preventDefault(); resume(); }
+  if (game.status === 'playing' || (game.status==='transition'&&!transitionPaused)) { event.preventDefault(); pause(); }
+  else if (game.status === 'paused'||transitionPaused) { event.preventDefault(); resume(); }
 });
 document.querySelectorAll('[data-difficulty]').forEach((button) => button.addEventListener('click', () => { difficulty = button.dataset.difficulty; save('orbita-difficulty', difficulty); updateMenu(); }));
 document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { mode = button.dataset.mode; save('orbita-mode', mode); updateMenu(); }));
@@ -649,16 +636,9 @@ for (const [id, value] of [['musicVolume', musicVolume], ['sfxVolume', sfxVolume
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
 $('helpButton').addEventListener('click', () => { pause(); $('helpDialog').showModal(); });
-$('customButton').addEventListener('click', () => { $('customText').value = customText; $('customError').textContent = ''; $('customDialog').showModal(); });
-document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => $(button.dataset.close).close()));
-$('saveTextButton').addEventListener('click', () => {
-  const value = $('customText').value.trim();
-  const words = wordsFromText(value, advanced);
-  if (!words.length) { $('customError').textContent = 'Acrescenta pelo menos uma palavra.'; return; }
-  customText = value; mode = 'reading'; save('orbita-text', customText); save('orbita-mode', mode);
-  $('customDialog').close(); updateMenu();
-});
-$('defaultTextButton').addEventListener('click', () => { customText = ''; save('orbita-text', ''); $('customDialog').close(); updateMenu(); });
+const library=setupLibrary({getLanguage:()=>textLanguage,onStart:beginDocument,onDefault:()=>{customText='';save('orbita-text','');updateMenu();}});
+$('customButton').addEventListener('click',()=>library.open(customText));
+document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
 
 $('rankingButton').addEventListener('click', showRanking);
 for (const id of ['uiLanguage', 'textLanguage', 'world', 'story', 'writing']) $(id).addEventListener('change', () => {
@@ -669,5 +649,9 @@ for (const id of ['uiLanguage', 'textLanguage', 'world', 'story', 'writing']) $(
   if (id === 'writing') { advanced = $(id).value === 'advanced'; save('orbita-advanced', advanced); }
   updateMenu(); translatePage(); updateTypedEcho();
 });
+for (const id of ['uiLanguage','textLanguage']) {
+  $(id).replaceChildren(...Object.entries(supportedLanguages).map(([value,label]) => { const option=document.createElement('option');option.value=value;option.textContent=label;return option; }));
+}
+menuUI = setupMenu({languages:supportedLanguages,getLanguage:()=>uiLanguage,onLanguage:value=>{$('uiLanguage').value=value;$('uiLanguage').dispatchEvent(new Event('change'));},onOptions:()=>{$('optionsDialog').showModal();}});
 updateMenu(); updateSoundButton(); updateHud(); updateTypedEcho(); translatePage();
 requestAnimationFrame(frame);

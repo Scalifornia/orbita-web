@@ -6,7 +6,8 @@ const SHOT = new URL('./assets/missile_launch.wav', import.meta.url);
 const clamp = (value, low, high, fallback) => Number.isFinite(Number(value)) ? Math.min(high, Math.max(low, Number(value))) : fallback;
 
 /**
- * Music is original and file-backed; the short shot uses the player's sample.
+ * Music and combat effects reuse the supplied local files. Brief event cues
+ * are synthesised so feedback stays immediate even while samples are loading.
  * Constructing this class never starts audio or downloads a file. Call unlock()
  * directly from a click/tap; it creates/resumes AudioContext before returning.
  * Scene requests may precede unlock. Music loading observes the latest scene,
@@ -31,6 +32,9 @@ export class GameAudio {
     this._shotRequested = false;
     this._lastShot = -Infinity;
     this._lastHit = -Infinity;
+    this._lastCombo = -Infinity;
+    this._lastDestroy = -Infinity;
+    this._lastDamage = -Infinity;
   }
 
   unlock() {
@@ -42,6 +46,7 @@ export class GameAudio {
         const context = this.context;
         this._master = context.createGain();
         this._musicBus = context.createGain();
+        this._musicDuck = context.createGain();
         this._sfxBus = context.createGain();
         this._compressor = context.createDynamicsCompressor();
         this._compressor.threshold.value = -12;
@@ -52,7 +57,8 @@ export class GameAudio {
         this._master.gain.value = this.enabled ? 0.85 : 0;
         this._musicBus.gain.value = this.musicVolume;
         this._sfxBus.gain.value = this.sfxVolume;
-        this._musicBus.connect(this._master);
+        this._musicBus.connect(this._musicDuck);
+        this._musicDuck.connect(this._master);
         this._sfxBus.connect(this._master);
         this._master.connect(this._compressor);
         this._compressor.connect(context.destination);
@@ -165,7 +171,9 @@ export class GameAudio {
     const startsAt = context.currentTime + 0.012;
     const offset = (this._offsets[scene] || 0) % buffer.duration;
     gain.gain.setValueAtTime(0, context.currentTime);
-    gain.gain.linearRampToValueAtTime(1, startsAt + 0.38);
+    // Keep the supplied groove below the UI/typing cues without modifying the
+    // player's volume setting; the menu has a slightly fuller level.
+    gain.gain.linearRampToValueAtTime(scene === 'game' ? 0.82 : 0.92, startsAt + 0.38);
     source.connect(filter); filter.connect(gain); gain.connect(this._musicBus);
     const voice = { source, gain, filter, scene, startsAt, offset, buffer, retired: false };
     this._musicVoices.add(voice);
@@ -231,6 +239,17 @@ export class GameAudio {
       this._ramp(voice.gain.gain, 0, 0.015);
       try { voice.source.stop(this.context.currentTime + 0.02); } catch {}
     }
+    if (this._musicDuck) this._ramp(this._musicDuck.gain, 1, .08);
+  }
+
+  _duckMusic(duration = .3, level = .7) {
+    if (!this._musicDuck) return;
+    const now = this.context.currentTime;
+    const gain = this._musicDuck.gain;
+    if (gain.cancelAndHoldAtTime) gain.cancelAndHoldAtTime(now);
+    else { gain.cancelScheduledValues(now); gain.setValueAtTime(gain.value, now); }
+    gain.linearRampToValueAtTime(level, now + .025);
+    gain.linearRampToValueAtTime(1, now + duration);
   }
 
   _tone(from, to, duration, volume = 0.15, wave = 'triangle', delay = 0) {
@@ -269,7 +288,7 @@ export class GameAudio {
     source.start(now); source.stop(now + duration + 0.015);
   }
 
-  effect(type) {
+  effect(type, strength = 1) {
     if (!this.enabled || !this.context || this.context.state !== 'running' || this.scene === 'paused' || this.scene === 'off') return false;
     const now = this.context.currentTime;
     if (type === 'shot') {
@@ -278,7 +297,7 @@ export class GameAudio {
       if (this._shotBuffer) {
         const source = this.context.createBufferSource();
         const gain = this.context.createGain();
-        source.buffer = this._shotBuffer; gain.gain.value = 0.56;
+        source.buffer = this._shotBuffer; gain.gain.value = 0.43;
         source.connect(gain); gain.connect(this._sfxBus);
         this._register(source, gain); source.start(now);
       } else this._tone(880, 180, 0.11, 0.19, 'triangle');
@@ -287,21 +306,46 @@ export class GameAudio {
       this._lastHit = now;
       this._tone(310, 130, 0.065, 0.095, 'sine');
     } else if (type === 'destroy') {
+      if (now - this._lastDestroy < .04) return false;
+      this._lastDestroy = now;
+      this._duckMusic(.23, .82);
       if (this._explosionBuffer) {
         const source = this.context.createBufferSource();
         const gain = this.context.createGain();
-        source.buffer = this._explosionBuffer; gain.gain.value = 0.5;
+        source.buffer = this._explosionBuffer;
+        // Several word explosions may overlap: shorten their tail, preserving
+        // the actual supplied sample and its attack instead of a loud wash.
+        const duration = Math.min(.85, this._explosionBuffer.duration);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(.36, now + .005);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + Math.max(.02, duration));
         source.connect(gain); gain.connect(this._sfxBus);
-        this._register(source, gain); source.start(now);
-      } else { this._noise(0.34, 0.4, 1700); this._tone(118, 34, 0.28, 0.24, 'sine'); }
+        this._register(source, gain); source.start(now); source.stop(now + duration + .015);
+      } else { this._noise(0.28, 0.3, 1700); this._tone(118, 34, 0.24, 0.18, 'sine'); }
     } else if (type === 'damage') {
-      this._noise(0.46, 0.45, 1000); this._tone(190, 42, 0.42, 0.22, 'triangle');
+      if (now - this._lastDamage < .12) return false;
+      this._lastDamage = now;
+      this._duckMusic(.45, .6);
+      this._noise(0.36, 0.32, 1000); this._tone(190, 42, 0.36, 0.19, 'triangle');
     } else if (type === 'miss') {
       this._tone(150, 110, 0.075, 0.10, 'sine');
     } else if (type === 'level') {
+      this._duckMusic(.6, .67);
       [0, 4, 7, 12].forEach((note, index) => this._tone(330 * 2 ** (note / 12), 330 * 2 ** (note / 12), 0.22, 0.11, 'triangle', index * 0.075));
+    } else if (type === 'combo') {
+      if (now - this._lastCombo < .32) return false;
+      this._lastCombo = now;
+      const root = 440 * 2 ** ((clamp(strength, 1, 5, 1) - 1) / 12);
+      this._duckMusic(.25, .82);
+      [1, 1.5, 2].forEach((ratio, index) => this._tone(root * ratio, root * ratio * 1.01, .15, .075, 'sine', index * .045));
+    } else if (type === 'start') {
+      [262, 392, 523].forEach((note, index) => this._tone(note, note, .17, .08, 'sine', index * .07));
     } else if (type === 'victory') {
+      this._duckMusic(1.15, .5);
       [0, 4, 7, 12, 16, 19].forEach((note, index) => this._tone(262 * 2 ** (note / 12), 262 * 2 ** (note / 12), 0.42, 0.13, 'triangle', index * 0.11));
+    } else if (type === 'gameover') {
+      this._duckMusic(.9, .48);
+      [330, 262, 196, 131].forEach((note, index) => this._tone(note, note * .96, .35, .10, 'triangle', index * .12));
     } else return false;
     return true;
   }
