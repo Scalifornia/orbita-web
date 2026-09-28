@@ -4,6 +4,8 @@ import { stories } from './stories.mjs';
 import { setupMenu } from './interface.mjs';
 import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs';
 import { Adventure } from './adventure.mjs';
+import { setupReader } from './reader.mjs';
+import { createCampaign } from './campaign.mjs';
 import { setupLibrary } from './library.mjs';
 import { documentFromText } from './documentImport.mjs';
 import { SceneRenderer } from './scenery.mjs';
@@ -52,6 +54,7 @@ sound.setScene('menu');
 let audioReady = false;
 let menuUI = null;
 const adventure = new Adventure();
+const reader = setupReader();
 const scenery = new SceneRenderer();
 const transition = new LevelTransition();
 let transitionPaused = false, saveTimer = null;
@@ -86,6 +89,7 @@ function showRanking() {
 }
 function updateMenu() {
   document.body.classList.toggle('earth', world === 'earth');
+  document.querySelectorAll('[data-world]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.world===world)));
   document.querySelector('.field-coordinate').textContent = world === 'earth' ? 'TERRA · MISSÃO FLORESTA' : 'SECTOR 07 · SISTEMA ÓRBITA';
   lastHudKey = '';
   document.querySelector('.ship-card .eyebrow').textContent = world === 'earth' ? 'O TEU TANQUE' : 'A TUA NAVE';
@@ -145,6 +149,7 @@ function updateSoundButton() {
   $('menuMusicButton').classList.toggle('playing', soundOn && audioReady);
   $('soundButton').setAttribute('aria-label', soundOn ? 'Desativar som' : 'Ativar som');
   $('soundButton').setAttribute('aria-pressed', String(soundOn));
+  $('soundButton').classList.toggle('muted',!soundOn);
   $('soundWaves').setAttribute('d', soundOn ? 'M15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14' : 'm16 9 5 6m0-6-5 6');
 }
 $('soundButton').addEventListener('click', () => {
@@ -280,7 +285,7 @@ function beginTransition() {
   $('completionStats').textContent=`${game.score} ${t('pontos')} · ${Math.round(game.accuracy)}% · ${Math.round(game.wpm)} ${t('pal./min')}`;
   const percent=Math.round(adventure.percent(game));
   $('completionFill').style.width=`${percent}%`;$('completionProgress').textContent=`${percent}%`;
-  transition.start(clock,{}, {chapter:level.isChapterEnd,reducedMotion});saveProgress();
+  transition.start(clock+.3,{}, {chapter:level.isChapterEnd,reducedMotion});saveProgress();
 }
 function advanceLevel() {
   if(game.status!=='transition')return;
@@ -355,7 +360,7 @@ function updateReading() {
   if (key === lastReadingKey) return;
   lastReadingKey = key;
   const fragment = document.createDocumentFragment();
-  for (let offset = Math.max(-3, -index); offset <= 11; offset++) {
+  for (let offset = Math.max(-8, -index); offset <= 35; offset++) {
     if(adventure.campaign && index+offset>=textTokens.length)break;
     const token = textTokens[(index + offset) % textTokens.length];
     const span = document.createElement('span');
@@ -372,7 +377,7 @@ function updateReading() {
   const current = $('readingText').querySelector('.read-current');
   if (current) {
     const top = current.getBoundingClientRect().top - $('readingText').getBoundingClientRect().top;
-    $('readingText').scrollTop = Math.max(0, $('readingText').scrollTop + top);
+    $('readingText').scrollTop = Math.max(0, $('readingText').scrollTop + top - 28);
   }
 }
 function updateHud() {
@@ -555,7 +560,7 @@ function frame(timestamp) {
     const step=transition.sample(clock);if(step.advance)advanceLevel();
     $('levelCompletion').hidden=!step.active;$('levelCompletion').style.opacity=step.opacity;
     for(const element of $('levelCompletion').children)element.style.visibility=step.showSummary?'visible':'hidden';
-    if(!step.active)transition.clear();
+    if(!step.active){transition.clear();scenery.enter(clock);}
   }
   if (!frozen) updateEffects(dt);
   if (pendingFinish !== null && clock >= pendingFinish) { pendingFinish = null; finish(); }
@@ -585,9 +590,9 @@ $('resumeButton').addEventListener('click', resume);
 $('exitButton').addEventListener('click', menu);
 $('menuButton').addEventListener('click', menu);
 $('releaseButton').addEventListener('click', () => { game.releaseTarget(); endTypedFragment(); focusInput(); updateHud(); });
-for (const id of ['releaseButton', 'soundButton']) {
+for (const id of ['releaseButton', 'soundButton', 'nextLevelButton']) {
   $(id).addEventListener('pointerdown', (event) => {
-    if (game.status === 'playing') event.preventDefault();
+    if (['playing','transition'].includes(game.status)) event.preventDefault();
   });
 }
 canvas.addEventListener('pointerdown', () => { if (game.status === 'playing') focusInput(); });
@@ -614,6 +619,7 @@ $('menuMusicButton').addEventListener('click', () => {
   sound.setEnabled(soundOn); sound.setScene('menu'); save('orbita-sound', soundOn);
   unlockAudio(); updateSoundButton();
 });
+$('optionsAudioButton').addEventListener('click',()=>{$('optionsDialog').close();$('audioDialog').showModal();});
 $('audioSettingsButton').addEventListener('click', () => { pause(); $('audioDialog').showModal(); });
 $('audioListenButton').addEventListener('click', () => {
   soundOn = true; sound.setEnabled(true); save('orbita-sound', true);
@@ -636,13 +642,16 @@ for (const [id, value] of [['musicVolume', musicVolume], ['sfxVolume', sfxVolume
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
 $('helpButton').addEventListener('click', () => { pause(); $('helpDialog').showModal(); });
-const library=setupLibrary({getLanguage:()=>textLanguage,onStart:beginDocument,onDefault:()=>{customText='';save('orbita-text','');updateMenu();}});
+const library=setupLibrary({getLanguage:()=>textLanguage,onStart:beginDocument,onRead:campaign=>reader.open(campaign),onDefault:()=>{customText='';save('orbita-text','');updateMenu();}});
+$('readBookButton').addEventListener('click',()=>{pause();reader.open(adventure.campaign || createCampaign(documentFromText(customText || stories[story][textLanguage].text,customText?t('Texto personalizado'):stories[story][textLanguage].title)),Math.max(0,adventure.campaign?game.level-1:0));});
+$('testExplosionButton').addEventListener('click',async()=>{soundOn=true;save('orbita-sound',true);sound.setEnabled(true);if(sfxVolume===0){sfxVolume=.5;sound.setSfxVolume(.5);save('orbita-sfx-volume',.5);$('sfxVolume').value=50;$('sfxVolumeLabel').textContent='50%';}await sound.unlock();sound.previewExplosion();updateSoundButton();translatePage();});
+for(const button of document.querySelectorAll('[data-world]'))button.addEventListener('click',()=>{$('world').value=button.dataset.world;$('world').dispatchEvent(new Event('change'));});
 $('customButton').addEventListener('click',()=>library.open(customText));
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
 
 $('rankingButton').addEventListener('click', showRanking);
 for (const id of ['uiLanguage', 'textLanguage', 'world', 'story', 'writing']) $(id).addEventListener('change', () => {
-  if (id === 'uiLanguage') { uiLanguage = $(id).value; setLanguage(uiLanguage); save('orbita-ui-language', uiLanguage); }
+  if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); save('orbita-ui-language', uiLanguage); }
   if (id === 'textLanguage') { textLanguage = $(id).value; save('orbita-text-language', textLanguage); }
   if (id === 'world') { world = $(id).value; story = world === 'earth' ? 'lion' : 'hare'; save('orbita-world', world); save('orbita-story', story); }
   if (id === 'story') { story = $(id).value; customText = ''; save('orbita-story', story); save('orbita-text', ''); }

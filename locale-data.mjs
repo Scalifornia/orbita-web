@@ -13,6 +13,17 @@ export const languages = Object.freeze([
 ].map(Object.freeze));
 
 export const messageRows = Object.freeze([
+  ["A−","A−","A−","A−","A−"],
+  ["A+","A+","A+","A+","A+"],
+  ["Ler o texto completo", "Read the full text", "Lire le texte complet", "Ganzen Text lesen", "Leer el texto completo"],
+  ["Testar explosão", "Test explosion", "Tester l’explosion", "Explosion testen", "Probar explosión"],
+  ["LEITURA", "READING", "LECTURE", "LESEN", "LECTURA"],
+  ["Secção", "Section", "Section", "Abschnitt", "Sección"],
+  ["Anterior", "Previous", "Précédent", "Zurück", "Anterior"],
+  ["Seguinte", "Next", "Suivant", "Weiter", "Siguiente"],
+  ["Diminuir texto", "Smaller text", "Réduire le texte", "Text verkleinern", "Reducir texto"],
+  ["Aumentar texto", "Larger text", "Agrandir le texte", "Text vergrößern", "Ampliar texto"],
+
   Object.freeze(["TERRA · MISSÃO FLORESTA", "EARTH · FOREST MISSION", "TERRE · MISSION FORÊT", "ERDE · WALDMISSION", "TIERRA · MISIÓN BOSQUE"]),
   Object.freeze(["O TEU TANQUE", "YOUR TANK", "TON CHAR", "DEIN PANZER", "TU TANQUE"]),
   Object.freeze(["Como jogar", "How to play", "Comment jouer", "Spielanleitung", "Cómo jugar"]),

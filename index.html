@@ -7,7 +7,7 @@
   <meta name="description" content="Órbita — um jogo de naves em que cada letra é um disparo. Joga com o teu teclado, no computador ou no telemóvel.">
   <title>Órbita — Cada letra conta.</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css?v=20260927b">
 </head>
 <body>
 <div class="viewport" id="viewport">
@@ -17,7 +17,7 @@
       <span>ÓRBITA<span class="brand-dot">✳</span></span>
     </a>
     <div class="header-note"><span class="live-dot"></span> NEON PROTOCOL <span class="header-version">02</span></div>
-    <nav aria-label="Controlos"><button id="helpButton" class="text-button">Como jogar <span>↗</span></button><button id="audioSettingsButton" class="text-button">Áudio <span>≋</span></button><button id="soundButton" class="icon-button" aria-label="Desativar som" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path id="soundWaves" d="M15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg></button></nav>
+    <nav aria-label="Controlos"><button id="helpButton" class="text-button">Como jogar <span>↗</span></button><button id="audioSettingsButton" class="text-button">Áudio <span>≋</span></button><button id="soundButton" class="icon-button" aria-label="Desativar som" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path id="soundWaves" d="M15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg></button><label class="header-language"><span aria-hidden="true">◎</span><span class="sr-only">Idioma dos menus</span><select id="menuLanguage" aria-label="Idioma dos menus"></select></label></nav>
   </header>
 
   <main class="layout">
@@ -52,8 +52,8 @@
           <div class="mission-tag"><span class="live-dot"></span> TODOS OS SISTEMAS ONLINE</div>
           <h2 id="startHeading">Uma palavra de cada vez.<br><em>Uma aventura inteira.</em></h2>
           <p>Escolhe uma história ou traz o teu livro.</p>
-          <div class="hero-language"><label for="menuLanguage">Idioma dos menus</label><select id="menuLanguage" aria-label="Idioma dos menus"></select></div>
-          <div class="mission-selection" id="missionSelection" data-no-i18n></div>
+
+          <div class="world-cards"><button data-world="space" aria-pressed="true"><span aria-hidden="true">✦</span><strong>Espaço</strong></button><button data-world="earth" aria-pressed="false"><span aria-hidden="true">▰</span><strong>Terra</strong></button></div><div class="mission-selection" id="missionSelection" data-no-i18n></div>
           <button id="startButton" class="primary-button">Jogar <span>↗</span></button>
           <button id="continueButton" class="continue-button" hidden><span>Continuar</span><small id="continueSummary" data-no-i18n></small></button>
           <div class="menu-secondary"><button id="customButton" class="custom-button">Carregar texto/documento</button><button id="optionsButton" class="custom-button">Opções</button></div>
@@ -79,7 +79,7 @@
       </div>
 
       <div class="typing-dock" id="typingDock">
-        <div class="reading-strip" id="readingStrip" hidden><span class="reading-label">A TUA HISTÓRIA</span><div id="readingText"></div></div>
+        <div class="reading-strip" id="readingStrip" hidden><div class="reading-toolbar"><span class="reading-label">A TUA HISTÓRIA</span><button id="readBookButton" class="text-button">Ler o texto completo</button></div><div id="readingText"></div></div>
         <div class="input-line"><span class="input-crosshair" aria-hidden="true">⌖</span><label class="sr-only" for="typingInput">Escreve as palavras das naves. Os espaços são automáticos.</label><div class="input-wrap"><span id="typedEcho" aria-hidden="true">O teu teclado é o comando.</span><input id="typingInput" type="text" inputmode="text" enterkeyhint="go" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="O teu teclado é o comando." disabled></div><button id="releaseButton" class="release-button" aria-label="Libertar alvo" title="Libertar alvo" disabled>↺</button></div>
         <span id="saveStatus" class="save-status" role="status"></span><div id="campaignProgress" class="campaign-progress" hidden><span id="campaignTitle" data-no-i18n></span><span id="campaignPercent"></span></div><div class="input-meta"><span id="targetHint">COMPUTADOR OU TELEMÓVEL. TU ESCOLHES.</span><span id="accuracyValue">SEM PRESSA. ATÉ COMEÇAR.</span></div>
       </div>
@@ -103,7 +103,7 @@
             <button data-difficulty="hard" aria-pressed="false">Difícil</button>
             <button data-difficulty="extreme" aria-pressed="false">Extremo</button>
           </div>
-<button id="rankingButton" class="custom-button">Ranking local ↗</button><button class="primary-button" data-close="optionsDialog">Pronto para jogar</button></dialog>
+<button id="optionsAudioButton" class="custom-button">Áudio</button><button id="rankingButton" class="custom-button">Ranking local ↗</button><button class="primary-button" data-close="optionsDialog">Pronto para jogar</button></dialog>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
   <button class="dialog-close icon-button" data-close="helpDialog" aria-label="Fechar ajuda">×</button>
   <div class="eyebrow">MANUAL DE VOO</div><h2 id="helpTitle">É só escrever.</h2>
@@ -126,7 +126,7 @@
   <p class="dialog-note">Na escrita básica, os acentos são simplificados e a pontuação é ignorada. Na avançada, copia todos os caracteres de cada palavra. Os espaços são automáticos. O texto fica apenas neste dispositivo.</p>
   <p id="customError" class="form-error" role="alert"></p>
   <button id="saveTextButton" class="custom-button">Pré-visualização</button><section id="documentPreview" class="document-preview" hidden><h3 id="previewTitle" data-no-i18n></h3><p id="previewStats" data-no-i18n></p><pre id="previewText" data-no-i18n></pre></section><button id="playDocumentButton" class="primary-button" disabled>Começar campanha <span>↗</span></button>
-  <button id="defaultTextButton" class="custom-button">Voltar às palavras do jogo</button>
+  <button id="readDocumentButton" class="custom-button" disabled>Ler o texto completo</button><button id="defaultTextButton" class="custom-button">Voltar às palavras do jogo</button>
 </dialog>
 <dialog id="audioDialog" aria-labelledby="audioTitle">
   <button class="dialog-close icon-button" data-close="audioDialog" aria-label="Fechar áudio">×</button>
@@ -134,10 +134,11 @@
   <p>Ambiente no menu e Binary Groove durante a missão. Missile Launch acompanha os tiros; Explosion toca quando uma palavra é destruída.</p>
   <label for="musicVolume">Música <output id="musicVolumeLabel">25%</output></label><input id="musicVolume" type="range" min="0" max="100" value="25">
   <label for="sfxVolume">Tiros e explosões <output id="sfxVolumeLabel">50%</output></label><input id="sfxVolume" type="range" min="0" max="100" value="50">
-  <button id="audioListenButton" class="primary-button">Ativar áudio <span>♫</span></button>
+  <button id="testExplosionButton" class="custom-button">Testar explosão</button><button id="audioListenButton" class="primary-button">Ativar áudio <span>♫</span></button>
   <p class="dialog-note">O som começa após o primeiro toque ou clique. Podes desligá-lo no ícone de altifalante.</p>
 </dialog>
 <dialog id="rankingDialog" aria-labelledby="rankingTitle"><button class="dialog-close icon-button" data-close="rankingDialog" aria-label="Fechar">×</button><h2 id="rankingTitle">Ranking local</h2><p>As 10 melhores partidas nesta configuração, guardadas neste navegador.</p><p id="rankingConfig"></p><ol id="rankingList"></ol><p id="rankingStatus" role="status"></p></dialog>
+<dialog id="readerDialog" aria-labelledby="readerTitle"><header class="reader-header"><div><span class="eyebrow">LEITURA</span><h2 id="readerTitle" data-no-i18n></h2></div><button class="dialog-close icon-button" data-close="readerDialog" aria-label="Fechar">×</button></header><div class="reader-controls"><label for="readerSection">Secção</label><select id="readerSection" data-no-i18n></select><button id="readerSmaller" aria-label="Diminuir texto">A−</button><button id="readerLarger" aria-label="Aumentar texto">A+</button></div><article id="readerContent" tabindex="0" data-no-i18n></article><footer class="reader-footer"><button id="readerPrevious">Anterior</button><span id="readerPosition" data-no-i18n></span><button id="readerNext">Seguinte</button></footer></dialog>
 <script type="module" src="./main.mjs"></script>
 </body>
 </html>

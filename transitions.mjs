@@ -1,5 +1,5 @@
 /** Short, clock-driven level transition. No timers: the game can pause safely. */
-export const TRANSITION_TIMING = Object.freeze({ pause: .10, out: .18, summary: .67, in: .25 });
+export const TRANSITION_TIMING = Object.freeze({ pause: .20, out: .25, summary: 2.4, in: .45 });
 const clamp = (value) => Math.min(1, Math.max(0, value));
 const ease = (value) => value * value * (3 - 2 * value);
 
@@ -7,7 +7,7 @@ export function transitionFrame(elapsed, { chapter = false, reducedMotion = fals
   const time = Math.max(0, Number(elapsed) || 0);
   const pause = TRANSITION_TIMING.pause;
   const out = reducedMotion ? 0 : TRANSITION_TIMING.out;
-  const summary = chapter ? .97 : TRANSITION_TIMING.summary;
+  const summary = chapter ? 3.2 : TRANSITION_TIMING.summary;
   const fadeIn = reducedMotion ? 0 : TRANSITION_TIMING.in;
   const reveal = pause + out, release = reveal + summary, duration = release + fadeIn;
   let phase = 'pause', opacity = 0;

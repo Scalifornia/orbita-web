@@ -68,7 +68,7 @@ export class GameAudio {
       const resumed = this.context.state === 'running' ? Promise.resolve() : this.context.resume();
       if (!this._shotRequested) {
         this._shotRequested = true;
-        this._load(new URL('./assets/explosion.mp3', import.meta.url)).then(buffer => { this._explosionBuffer = buffer; }).catch(() => {});
+        this._load(new URL('./assets/explosion.mp3', import.meta.url)).then(buffer => { this._explosionBuffer = buffer; this._explosionOffset = this._audibleOffset(buffer); }).catch(() => {});
         this._load(SHOT).then((buffer) => {
           if (buffer) this._shotBuffer = this._trimShot(buffer);
         }).catch(() => {});
@@ -196,6 +196,22 @@ export class GameAudio {
     try { voice.source.stop(now + duration + 0.015); } catch {}
   }
 
+  _audibleOffset(buffer) {
+    if(!buffer)return 0;
+    const data=buffer.getChannelData(0);let peak=0;
+    for(const value of data)peak=Math.max(peak,Math.abs(value));
+    const threshold=Math.max(.002,peak*.025);
+    const onset=data.findIndex(value=>Math.abs(value)>=threshold);
+    return Math.max(0,(onset-128)/buffer.sampleRate);
+  }
+
+  async previewExplosion() {
+    const buffer=await this._load(new URL('./assets/explosion.mp3',import.meta.url));
+    this._explosionBuffer=buffer;this._explosionOffset=this._audibleOffset(buffer);
+    const previous=this.scene;this.scene='menu';
+    this._lastDestroy=-Infinity;const played=this.effect('destroy');this.scene=previous;return played;
+  }
+
   _trimShot(buffer) {
     const channel = buffer.getChannelData(0);
     let peak = 0;
@@ -308,19 +324,20 @@ export class GameAudio {
     } else if (type === 'destroy') {
       if (now - this._lastDestroy < .04) return false;
       this._lastDestroy = now;
-      this._duckMusic(.23, .82);
+      this._duckMusic(.55, .5);
       if (this._explosionBuffer) {
         const source = this.context.createBufferSource();
         const gain = this.context.createGain();
         source.buffer = this._explosionBuffer;
         // Several word explosions may overlap: shorten their tail, preserving
         // the actual supplied sample and its attack instead of a loud wash.
-        const duration = Math.min(.85, this._explosionBuffer.duration);
+        const duration = Math.min(1.6, this._explosionBuffer.duration-(this._explosionOffset||0));
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(.36, now + .005);
+        gain.gain.linearRampToValueAtTime(.85, now + .005);
+        gain.gain.setValueAtTime(.85, now + Math.min(.18,duration*.3));
         gain.gain.exponentialRampToValueAtTime(.0001, now + Math.max(.02, duration));
         source.connect(gain); gain.connect(this._sfxBus);
-        this._register(source, gain); source.start(now); source.stop(now + duration + .015);
+        this._register(source, gain); source.start(now,this._explosionOffset||0); source.stop(now + duration + .015);
       } else { this._noise(0.28, 0.3, 1700); this._tone(118, 34, 0.24, 0.18, 'sine'); }
     } else if (type === 'damage') {
       if (now - this._lastDamage < .12) return false;

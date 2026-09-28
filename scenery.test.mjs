@@ -68,14 +68,14 @@ test('reduced motion yields identical static backgrounds even as time advances',
 
 test('level transition proceeds pause, fade out, summary, fade in then done', () => {
   assert.equal(transitionFrame(0).phase, 'pause');
-  assert.equal(transitionFrame(.18).phase, 'out');
+  assert.equal(transitionFrame(.3).phase, 'out');
   assert.equal(transitionFrame(.5).phase, 'summary');
-  assert.equal(transitionFrame(1.05).phase, 'in');
-  assert.equal(transitionFrame(1.25).phase, 'done');
-  assert.ok(Math.abs(transitionFrame(0).duration - 1.2) < .001);
+  assert.equal(transitionFrame(3.05).phase, 'in');
+  assert.equal(transitionFrame(3.4).phase, 'done');
+  assert.ok(Math.abs(transitionFrame(0).duration - 3.3) < .001);
   assert.equal(transitionFrame(.5).opacity, 1);
-  assert.ok(transitionFrame(1.05).opacity > 0 && transitionFrame(1.05).opacity < 1);
-  assert.ok(Math.abs(transitionFrame(0, { chapter: true }).duration - 1.5) < .001);
+  assert.ok(transitionFrame(3.05).opacity > 0 && transitionFrame(3.05).opacity < 1);
+  assert.ok(Math.abs(transitionFrame(0, { chapter: true }).duration - 4.1) < .001);
 });
 
 test('transition advances once even with a dropped frame and can be reset', () => {
@@ -83,9 +83,9 @@ test('transition advances once even with a dropped frame and can be reset', () =
   assert.equal(transition.sample(1).active, false);
   transition.start(10, { score: 200 });
   assert.equal(transition.sample(10.5).advance, false);
-  const skipped = transition.sample(12);
+  const skipped = transition.sample(15);
   assert.equal(skipped.advance, true); assert.equal(skipped.active, false); assert.equal(skipped.payload.score, 200);
-  assert.equal(transition.sample(12).advance, false);
+  assert.equal(transition.sample(15).advance, false);
   transition.start(20); assert.equal(transition.sample(20).advance, false);
   transition.clear(); assert.equal(transition.sample(30).advance, false);
 });

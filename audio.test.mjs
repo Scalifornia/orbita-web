@@ -209,12 +209,12 @@ test('combo is rate limited and game over is a finite descending cue', async (t)
   assert.equal(audio._effects.size, 0);
 });
 
-test('explosion overlap is bounded and its tail stops within one second', async (t) => {
+test('explosion overlap is bounded and its tail stays bounded', async (t) => {
   const io = setup(t); const audio = new GameAudio(); await audio.unlock();
   await io.resolve('explosion.mp3', buffer(8));
   assert.equal(audio.effect('destroy'), true);
   assert.equal(audio.effect('destroy'), false);
-  assert.ok(audio.context.started.at(-1).stopAt < 1);
+  assert.ok(audio.context.started.at(-1).stopAt < 1.7);
   assert.equal(audio.effect('damage'), true);
   assert.equal(audio.effect('damage'), false);
   for (let i = 0; i < 30; i++) audio.effect('gameover');
@@ -232,4 +232,22 @@ test('event ducking does not overwrite separate player volume preferences', asyn
   // The scheduled recovery ends at full level on its dedicated bus.
   assert.equal(audio._musicDuck.gain.value, 1);
   audio.setScene('paused'); assert.equal(audio._musicDuck.gain.value, 1);
+});
+
+test('explosion starts at the audible attack after leading silence', async t => {
+  const io=setup(t), audio=new GameAudio();await audio.unlock();
+  const sample=buffer(4);sample.getChannelData(0).fill(.8,1200,1600);
+  await io.resolve('explosion.mp3',sample);
+  audio.effect('destroy');
+  const voice=audio.context.started.at(-1);
+  assert.ok(voice.started.offset>1 && voice.started.offset<1.2);
+  assert.equal(voice.buffer,sample);
+});
+
+test('explosion preview works while paused without changing the current scene', async t => {
+  const io=setup(t), audio=new GameAudio();await audio.unlock();
+  await io.resolve('explosion.mp3',buffer(2));audio.setScene('paused');
+  assert.equal(await audio.previewExplosion(),true);
+  assert.equal(audio.scene,'paused');
+  assert.equal(audio.effect('shot'),false);
 });

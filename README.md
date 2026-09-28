@@ -1,6 +1,6 @@
 # Órbita — aventuras de escrita
 
-Jogo de escrita para computador e telemóvel. Esta evolução está na branch `codex/orbita-evolution`; a versão pública em [GitHub Pages](https://scalifornia.github.io/orbita-web/) mantém a baseline de `main` até à aprovação da integração.
+Jogo de escrita para computador e telemóvel. Esta evolução está na branch `codex/orbita-evolution`. Joga em [GitHub Pages](https://scalifornia.github.io/orbita-web/). A publicação acompanha esta branch de evolução; `main` conserva a baseline anterior.
 
 ## Começar
 
@@ -53,3 +53,12 @@ A suite inclui regras originais, campanhas finitas, divisão natural, capítulos
 - `scenery.mjs`, `transitions.mjs`, `audio.mjs`: cenários, transições e sons.
 - `main.mjs`: ligação dos módulos e efeitos de combate.
 - `index.html`, `style.css`, `evolution.css`: estrutura e apresentação.
+
+## Atualização de leitura e interface — setembro de 2026
+
+- Idioma no canto superior direito, escolha Espaço/Terra no menu e botões de opções com maior contraste. O menu usa toda a área disponível antes de jogar.
+- “Ler o texto completo” abre um leitor com navegação por secções, parágrafos preservados e tamanho de letra ajustável, sem o limite de 5000 caracteres da pequena pré-visualização. Durante o jogo, abre na secção atual e pausa a partida.
+- Texto seguido com letras maiores, mais contexto e palavra atual destacada.
+- Resumos de nível duram 3,3 segundos e de capítulo 4,1 segundos, além da breve espera pelo último impacto. O botão Próximo nível permite avançar antes; a entrada do veículo recomeça após a transição.
+- Explosion mantém o ficheiro fornecido, com ataque preservado, cauda até 1,6 segundos e música atenuada no impacto. O painel de áudio inclui um teste de explosão.
+- A publicação GitHub Pages pode seguir diretamente `codex/orbita-evolution`, sem merge em `main`, mantendo o histórico de cada atualização no GitHub.

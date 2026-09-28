@@ -64,10 +64,10 @@ export class SceneRenderer {
     ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); ctx.fill(); ctx.stroke(); ctx.restore();
 
     for (const star of this.stars) {
-      const y = fract(star.y + motion * (.005 + star.depth * .027)) * h;
+      const y = fract(star.y + motion * (.014 + star.depth * .065)) * h;
       const x = fract(star.x + Math.sin(motion * .028) * .008 * star.depth) * w;
       const twinkle = .78 + Math.sin(time * (1.0 + star.depth) + star.phase) * .22;
-      ctx.globalAlpha = (.22 + star.depth * .43) * twinkle;
+      ctx.globalAlpha = (.36 + star.depth * .57) * twinkle;
       ctx.fillStyle = star.depth > .76 ? '#ddefff' : star.phase > 3 ? '#c0b9ff' : '#7aaec3';
       const streak = playing ? Math.min(7, clamp(speed, .5, 4) * star.depth * 2.2) : .2;
       ctx.fillRect(x, y, star.size, star.size + streak);
