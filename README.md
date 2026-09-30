@@ -62,3 +62,10 @@ A suite inclui regras originais, campanhas finitas, divisão natural, capítulos
 - Resumos de nível duram 3,3 segundos e de capítulo 4,1 segundos, além da breve espera pelo último impacto. O botão Próximo nível permite avançar antes; a entrada do veículo recomeça após a transição.
 - Explosion mantém o ficheiro fornecido, com ataque preservado, cauda até 1,6 segundos e música atenuada no impacto. O painel de áudio inclui um teste de explosão.
 - A publicação GitHub Pages pode seguir diretamente `codex/orbita-evolution`, sem merge em `main`, mantendo o histórico de cada atualização no GitHub.
+
+
+### Atualização 1 outubro 2026
+- Início com Jogar e Opções; importação, continuar, áudio e ranking nas opções.
+- Novo cenário Escritório e conto satírico original nos cinco idiomas; Espaço, Terra e as duas fábulas continuam disponíveis.
+- Novas campanhas: 20 palavras por nível, transição automática de 1,2 s e aumento de velocidade a cada nível (limitado a 2,5×). Partidas antigas conservam os seus níveis guardados.
+- Em ecrãs até 700 px, a história e os painéis de texto adicionais ficam ocultos; o teclado nativo e as palavras no campo continuam disponíveis.

@@ -102,7 +102,7 @@ export class GameEngine {
     const completedLevels = this.level - 1 + this.levelProgress;
     // Books can contain thousands of sections. Keep their pace learnable and
     // bounded instead of applying the ten-level arcade curve indefinitely.
-    if (this._levels) return 1 + 1.5 * (1 - Math.exp(-completedLevels / 20));
+    if (this._levels) return 1 + 1.5 * (1 - Math.exp(-(this.level - 1) / 10));
     // Progress within each level also raises the pace, avoiding a sudden jump
     // at its boundary. Endless play additionally accelerates with active time.
     return this.progression === 'endless'

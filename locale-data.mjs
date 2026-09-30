@@ -13,6 +13,23 @@ export const languages = Object.freeze([
 ].map(Object.freeze));
 
 export const messageRows = Object.freeze([
+["Órbita","Órbita","Órbita","Órbita","Órbita"],
+["Escritório", "Office", "Bureau", "Büro", "Oficina"],
+["RECURSOS DESUMANOS", "INHUMAN RESOURCES", "RESSOURCES INHUMAINES", "UNMENSCHLICHE RESSOURCEN", "RECURSOS INHUMANOS"],
+["A reunião que podia ser um email", "The meeting that could have been an email", "La réunion qui aurait pu être un mail", "Das Meeting, das eine E-Mail hätte sein können", "La reunión que pudo ser un correo"],
+["BEM-VINDO À SEGUNDA-FEIRA", "WELCOME TO MONDAY", "BIENVENUE AU LUNDI", "WILLKOMMEN AM MONTAG", "BIENVENIDO AL LUNES"],
+["Trabalha.", "Work.", "Travaille.", "Arbeite.", "Trabaja."],
+["Sorri.", "Smile.", "Souris.", "Lächle.", "Sonríe."],
+["Repete.", "Repeat.", "Recommence.", "Wiederhole.", "Repite."],
+["O café morreu. A reunião não.", "The coffee died. The meeting did not.", "Le café est mort. Pas la réunion.", "Der Kaffee ist tot. Das Meeting nicht.", "El café murió. La reunión no."],
+["Escreve depressa. Parece produtividade.", "Type fast. It looks like productivity.", "Tape vite. Ça ressemble à de la productivité.", "Tippe schnell. Sieht nach Produktivität aus.", "Escribe rápido. Parece productividad."],
+["O prazo sobreviveu. Tu também.", "The deadline survived. So did you.", "Le délai a survécu. Toi aussi.", "Die Frist hat überlebt. Du auch.", "El plazo sobrevivió. Tú también."],
+["Promovido a mais trabalho.", "Promoted to more work.", "Promu à plus de travail.", "Befördert zu mehr Arbeit.", "Ascendido a más trabajo."],
+["A produtividade foi dar uma volta.", "Productivity has left the building.", "La productivité est partie faire un tour.", "Die Produktivität ist spazieren gegangen.", "La productividad se fue de paseo."],
+["Pausa para fingir que está tudo bem.", "A break to pretend everything is fine.", "Une pause pour faire semblant que tout va bien.", "Pause, um so zu tun, als wäre alles gut.", "Pausa para fingir que todo va bien."],
+["Mais um turno", "Another shift", "Encore un service", "Noch eine Schicht", "Otro turno"],
+["O TEU LEGADO EM NÚMEROS", "YOUR LEGACY IN NUMBERS", "TON HÉRITAGE EN CHIFFRES", "DEIN VERMÄCHTNIS IN ZAHLEN", "TU LEGADO EN CIFRAS"],
+["20 palavras. Depois, mais trabalho.", "20 words. Then more work.", "20 mots. Puis encore du travail.", "20 Wörter. Dann noch mehr Arbeit.", "20 palabras. Luego más trabajo."],
   ["A−","A−","A−","A−","A−"],
   ["A+","A+","A+","A+","A+"],
   ["Ler o texto completo", "Read the full text", "Lire le texte complet", "Ganzen Text lesen", "Leer el texto completo"],

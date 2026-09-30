@@ -8,7 +8,7 @@ export function setupLibrary({getLanguage,onStart,onDefault,onRead}){
   function status(message){$('customError').textContent=t(message);}
   function clear(){selected=null;$('documentPreview').hidden=true;$('playDocumentButton').disabled=true;$('readDocumentButton').disabled=true;}
   function preview(doc){
-    const campaign=createCampaign(doc,{language:getLanguage()});selected=doc;
+    const campaign=createCampaign(doc,{language:getLanguage(),targetWords:20,shortRounds:true});selected=doc;
     $('documentTitle').value=doc.title;$('previewTitle').textContent=doc.title;
     $('previewStats').textContent=`${t('{count} palavras',{count:campaign.totalWords})} · ${t('{count} níveis',{count:campaign.levels.length})}`;
     $('previewText').textContent=doc.sections.map(section=>(section.title?section.title+'\n':'')+section.text).join('\n\n').slice(0,5000);
@@ -26,7 +26,7 @@ export function setupLibrary({getLanguage,onStart,onDefault,onRead}){
     if(!selected)return;selected={...selected,title:$('documentTitle').value.trim()||selected.title};
     try{$('customDialog').close();onStart(selected);}catch{$('customDialog').showModal();status('Não foi encontrado texto legível.');}
   });
-  $('readDocumentButton').addEventListener('click',()=>{if(selected)onRead(createCampaign({...selected,title:$('documentTitle').value||selected.title},{language:getLanguage()}));});
+  $('readDocumentButton').addEventListener('click',()=>{if(selected)onRead(createCampaign({...selected,title:$('documentTitle').value||selected.title},{language:getLanguage(),targetWords:20,shortRounds:true}));});
   $('defaultTextButton').addEventListener('click',()=>{onDefault();$('customDialog').close();});
   return {open(text=''){version++;clear();$('saveTextButton').disabled=false;$('customText').value=text;status('');$('customDialog').showModal();},selected:()=>selected};
 }

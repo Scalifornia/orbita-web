@@ -41,8 +41,9 @@ let uiLanguage = readSaved('orbita-ui-language', 'pt');
 if (!Object.hasOwn(supportedLanguages,uiLanguage)) uiLanguage='pt';
 let textLanguage = readSaved('orbita-text-language', 'pt');
 if (!Object.hasOwn(supportedLanguages,textLanguage)) textLanguage='pt';
-let world = readSaved('orbita-world', 'space') === 'earth' ? 'earth' : 'space';
-let story = readSaved('orbita-story', world === 'earth' ? 'lion' : 'hare');
+let world = readSaved('orbita-world-v2', 'office');
+if (!['office','earth','space'].includes(world)) world='office';
+let story = readSaved('orbita-story-v2', 'office');
 if (!stories[story]) story = 'hare';
 let advanced = readSaved('orbita-advanced', false) === true;
 setLanguage(uiLanguage);
@@ -81,7 +82,7 @@ function textHash(value) { let hash = 2166136261; for (const char of value) hash
 function rankingKey() { return recordKey().replace('best', 'ranking'); }
 function rankingRows() { const rows = readSaved(rankingKey(), []); return Array.isArray(rows) ? rows.filter(row => row && Number.isFinite(row.score) && Number.isFinite(row.accuracy) && Number.isFinite(row.wpm) && typeof row.date === 'string').slice(0, 10) : []; }
 function showRanking() {
-  $('rankingConfig').textContent = [t(world === 'earth' ? 'Terra' : 'Espaço'), textLanguage.toUpperCase(), t(advanced ? 'Avançada' : 'Básica'), t(difficultyNames[difficulty]), t(modeNames[mode]), t(progression === 'campaign' ? 'Campanha' : 'Infinito'), customText ? t('Texto personalizado') : stories[story][textLanguage].title].join(' · ');
+  $('rankingConfig').textContent = [t(world === 'office' ? 'Escritório' : world === 'earth' ? 'Terra' : 'Espaço'), textLanguage.toUpperCase(), t(advanced ? 'Avançada' : 'Básica'), t(difficultyNames[difficulty]), t(modeNames[mode]), t(progression === 'campaign' ? 'Campanha' : 'Infinito'), customText ? t('Texto personalizado') : stories[story][textLanguage].title].join(' · ');
   const rows = rankingRows(); $('rankingList').replaceChildren();
   for (const row of rows) { const li = document.createElement('li'); li.textContent = `${row.score} ${t('pontos')} · ${Math.round(row.accuracy)}% · ${Math.round(row.wpm)} ${t('pal./min')} · ${new Date(row.date).toLocaleDateString(languageTags[uiLanguage])}`; $('rankingList').append(li); }
   $('rankingStatus').textContent = rows.length ? '' : t('Ainda não há partidas nesta configuração.');
@@ -89,8 +90,9 @@ function showRanking() {
 }
 function updateMenu() {
   document.body.classList.toggle('earth', world === 'earth');
+  document.body.classList.toggle('office', world === 'office');
   document.querySelectorAll('[data-world]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.world===world)));
-  document.querySelector('.field-coordinate').textContent = world === 'earth' ? 'TERRA · MISSÃO FLORESTA' : 'SECTOR 07 · SISTEMA ÓRBITA';
+  document.querySelector('.field-coordinate').textContent = world === 'office' ? 'RECURSOS DESUMANOS' : world === 'earth' ? 'TERRA · MISSÃO FLORESTA' : 'SECTOR 07 · SISTEMA ÓRBITA';
   lastHudKey = '';
   document.querySelector('.ship-card .eyebrow').textContent = world === 'earth' ? 'O TEU TANQUE' : 'A TUA NAVE';
   document.querySelector('.ship-card img').src = world === 'earth' ? tank.src : playerShip.src;
@@ -106,7 +108,7 @@ function updateMenu() {
   $('customButton').textContent = 'Carregar texto/documento';
   $('campaignLengthLabel').textContent=t(mode==='reading'?'História completa':'10 níveis');
   const savedAdventure = adventure.summary();
-  menuUI?.sync({language:uiLanguage, summary: `${t(world === 'earth' ? 'Terra' : 'Espaço')} · ${customText ? t('Texto personalizado') : stories[story][textLanguage].title}`, resume:savedAdventure ? `${savedAdventure.title} · ${t('Capítulo {number}',{number:savedAdventure.chapter})} · ${Math.round(savedAdventure.percent)}%` : ''});
+  menuUI?.sync({language:uiLanguage, summary: `${t(world === 'office' ? 'Escritório' : world === 'earth' ? 'Terra' : 'Espaço')} · ${customText ? t('Texto personalizado') : stories[story][textLanguage].title}`, resume:savedAdventure ? `${savedAdventure.title} · ${t('Capítulo {number}',{number:savedAdventure.chapter})} · ${Math.round(savedAdventure.percent)}%` : ''});
   const instruction = document.querySelector('.instructions p');
   instruction.replaceChildren(
     document.createTextNode(mode === 'reading' ? 'Acompanha o texto.' : 'Escolhe um alvo.'),
@@ -246,6 +248,7 @@ function startGame() {
   adventure.detach();game=new GameEngine({difficulty,mode,progression,advanced,customText:source}).start();activateGame();
 }
 function continueGame() {
+  $('optionsDialog').close();
   const saved=adventure.resume();if(!saved)return;
   ({difficulty,world,textLanguage,story,advanced}=saved.settings);mode='reading';progression='campaign';
   game=saved.engine;if(game.status==='paused')game.resume();
@@ -280,7 +283,7 @@ function menu() {
 }
 function beginTransition() {
   const level=adventure.campaign?.levels[game.level-1];if(!level)return;
-  $('completionTag').textContent=t(level.isChapterEnd?'Capítulo concluído':'Nível concluído');
+  $('completionTag').textContent=t('Promovido a mais trabalho.');
   $('completionTitle').textContent=level.title;
   $('completionStats').textContent=`${game.score} ${t('pontos')} · ${Math.round(game.accuracy)}% · ${Math.round(game.wpm)} ${t('pal./min')}`;
   const percent=Math.round(adventure.percent(game));
@@ -302,7 +305,7 @@ function finish() {
   const saved = isBest ? save(recordKey(), game.score) : true;
   $('resultTag').textContent = isBest ? (saved ? 'NOVO RECORDE. BEM VOADO.' : 'NOVO RECORDE NESTA PARTIDA.') : 'A PRÓXIMA VAGA É TUA.';
   const victory = game.status === 'won';
-  $('resultHeading').textContent = victory ? 'Órbita conquistada.' : 'Missão terminada.';
+  $('resultHeading').textContent = victory ? 'Órbita conquistada.' : 'A produtividade foi dar uma volta.';
   if (victory) { $('resultTag').textContent = t(adventure.campaign ? 'Campanha concluída' : '10 NÍVEIS. MISSÃO CUMPRIDA.'); if(adventure.campaign)adventure.complete(); } else saveProgress();
   sound.setScene('menu');
   tone(victory ? 'victory' : 'gameover');
@@ -494,7 +497,7 @@ function drawEnemy(enemy, demo = false) {
   ctx.fillStyle = active ? '#5b263e' : '#252b58'; ctx.strokeStyle = neon; ctx.lineWidth = 1;
   ctx.shadowColor = neon; ctx.shadowBlur = reducedMotion ? 0 : active ? 12 : 6;
   if (flash) ctx.fillStyle = '#bcffeb';
-  if (world === 'earth') { ctx.fillRect(-18,-7,36,15); ctx.strokeRect(-18,-7,36,15); ctx.fillRect(-9,-13,18,10); ctx.fillRect(-2,-23,4,14); } else { ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(6, -4); ctx.lineTo(18, -8); ctx.lineTo(12, 2); ctx.lineTo(5, 4); ctx.lineTo(0, 12); ctx.lineTo(-5, 4); ctx.lineTo(-12, 2); ctx.lineTo(-18, -8); ctx.lineTo(-6, -4); ctx.closePath(); ctx.fill(); ctx.stroke(); } ctx.shadowBlur = 0;
+  if (world === 'office') { scenery.drawClerk(ctx,reducedMotion?0:clock+enemy.id); } else if (world === 'earth') { ctx.fillRect(-18,-7,36,15); ctx.strokeRect(-18,-7,36,15); ctx.fillRect(-9,-13,18,10); ctx.fillRect(-2,-23,4,14); } else { ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(6, -4); ctx.lineTo(18, -8); ctx.lineTo(12, 2); ctx.lineTo(5, 4); ctx.lineTo(0, 12); ctx.lineTo(-5, 4); ctx.lineTo(-12, 2); ctx.lineTo(-18, -8); ctx.lineTo(-6, -4); ctx.closePath(); ctx.fill(); ctx.stroke(); } ctx.shadowBlur = 0;
   ctx.fillStyle = active ? '#bbff4b' : '#64deff'; ctx.fillRect(-2, -2, 4, 4);
   const textY = 32;
   ctx.font = `500 ${fontSize}px "Space Grotesk", monospace`;
@@ -566,7 +569,7 @@ function frame(timestamp) {
   if (pendingFinish !== null && clock >= pendingFinish) { pendingFinish = null; finish(); }
   updateHud(); drawBackground(reducedMotion ? 0 : clock);
   if (game.status === 'ready') {
-    drawEnemy({ id: -1, word: previewWords[textLanguage][world], progress: 0, x: .16, y: .18 + Math.sin(clock * .2) * .025 }, true);
+    drawEnemy({ id: -1, word: world === 'office' ? stories.office[textLanguage].text.split(/\s+/u)[0] : previewWords[textLanguage][world], progress: 0, x: .16, y: .18 + Math.sin(clock * .2) * .025 }, true);
     drawEnemy({ id: -2, word: previewWords[textLanguage].discover, progress: 0, x: .85, y: .49 + Math.sin(clock * .25) * .025 }, true);
     drawEnemy({ id: -3, word: previewWords[textLanguage].horizon, progress: 0, x: .19, y: .79 }, true);
   } else {
@@ -646,15 +649,15 @@ const library=setupLibrary({getLanguage:()=>textLanguage,onStart:beginDocument,o
 $('readBookButton').addEventListener('click',()=>{pause();reader.open(adventure.campaign || createCampaign(documentFromText(customText || stories[story][textLanguage].text,customText?t('Texto personalizado'):stories[story][textLanguage].title)),Math.max(0,adventure.campaign?game.level-1:0));});
 $('testExplosionButton').addEventListener('click',async()=>{soundOn=true;save('orbita-sound',true);sound.setEnabled(true);if(sfxVolume===0){sfxVolume=.5;sound.setSfxVolume(.5);save('orbita-sfx-volume',.5);$('sfxVolume').value=50;$('sfxVolumeLabel').textContent='50%';}await sound.unlock();sound.previewExplosion();updateSoundButton();translatePage();});
 for(const button of document.querySelectorAll('[data-world]'))button.addEventListener('click',()=>{$('world').value=button.dataset.world;$('world').dispatchEvent(new Event('change'));});
-$('customButton').addEventListener('click',()=>library.open(customText));
+$('customButton').addEventListener('click',()=>{$('optionsDialog').close();library.open(customText);});
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
 
 $('rankingButton').addEventListener('click', showRanking);
 for (const id of ['uiLanguage', 'textLanguage', 'world', 'story', 'writing']) $(id).addEventListener('change', () => {
   if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); save('orbita-ui-language', uiLanguage); }
   if (id === 'textLanguage') { textLanguage = $(id).value; save('orbita-text-language', textLanguage); }
-  if (id === 'world') { world = $(id).value; story = world === 'earth' ? 'lion' : 'hare'; save('orbita-world', world); save('orbita-story', story); }
-  if (id === 'story') { story = $(id).value; customText = ''; save('orbita-story', story); save('orbita-text', ''); }
+  if (id === 'world') { world = $(id).value; story = world === 'office' ? 'office' : world === 'earth' ? 'lion' : 'hare'; save('orbita-world-v2', world); save('orbita-story-v2', story); }
+  if (id === 'story') { story = $(id).value; customText = ''; save('orbita-story-v2', story); save('orbita-text', ''); }
   if (id === 'writing') { advanced = $(id).value === 'advanced'; save('orbita-advanced', advanced); }
   updateMenu(); translatePage(); updateTypedEcho();
 });

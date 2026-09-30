@@ -18,14 +18,14 @@ export class Adventure {
 
   _restore(record) {
     const settings = record.session.settings;
-    if (!settings || !['pt', 'en', 'fr', 'de', 'es'].includes(settings.textLanguage) || !['space', 'earth'].includes(settings.world) ||
+    if (!settings || !['pt', 'en', 'fr', 'de', 'es'].includes(settings.textLanguage) || !['space', 'earth', 'office'].includes(settings.world) ||
       record.engine.options?.mode !== 'reading' || record.engine.options?.progression !== 'campaign' ||
       Boolean(settings.advanced) !== record.engine.options.advanced) throw new Error('Invalid adventure settings');
     return GameEngine.fromSnapshot({ ...record.engine, options: { ...record.engine.options, customText: '', campaignLevels: record.campaign.levels } });
   }
 
   begin(document, settings) {
-    const campaign = createCampaign(document, { language: settings.textLanguage });
+    const campaign = createCampaign(document, { language: settings.textLanguage, targetWords: 20, shortRounds: true });
     // A symbols-only section has no playable targets in basic writing. Preserve
     // the source's chapter numbers, but recompute the playable boundaries.
     campaign.levels = campaign.levels.filter(level => wordsFromText(level.text, settings.advanced).length);

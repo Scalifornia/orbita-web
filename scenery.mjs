@@ -33,10 +33,42 @@ export class SceneRenderer {
     if (!reducedMotion) this.travel += dt * (playing ? .55 + clamp(speed, .5, 4) * .45 : .25);
     const motion = reducedMotion ? 0 : this.travel;
     ctx.save();
-    if (world === 'earth') this._earth(ctx, width, height, motion, reducedMotion ? 0 : time);
+    if (world === 'office') this._office(ctx, width, height, reducedMotion ? 0 : time);
+    else if (world === 'earth') this._earth(ctx, width, height, motion, reducedMotion ? 0 : time);
     else this._space(ctx, width, height, motion, reducedMotion ? 0 : time, playing, speed);
     this._defenceLine(ctx, width, height, world);
     ctx.restore();
+  }
+
+  drawClerk(ctx, time, player = false) {
+    ctx.save(); ctx.translate(0, Math.sin(time * 1.4) * 1.5);
+    ctx.fillStyle = player ? '#aebdc6' : '#d2bea0';
+    ctx.fillRect(-13, -18, 26, 25); ctx.fillStyle = '#282e37';
+    ctx.fillRect(-14, -20, 28, 5);
+    // Half-closed eyes and a resolutely unimpressed mouth.
+    ctx.fillRect(-9, -9, 6, 2); ctx.fillRect(3, -9, 6, 2); ctx.fillRect(-4, 0, 8, 1);
+    ctx.fillStyle = player ? '#6e9294' : '#7e8190';ctx.fillRect(-16, 8, 32, 17);
+    ctx.fillStyle = '#c78d69';ctx.fillRect(-2, 8, 4, 15);
+    if (player) { ctx.fillStyle='#323e45'; ctx.fillRect(-38,22,76,9);ctx.fillStyle='#d4c9a5';ctx.fillRect(24,11,10,11); }
+    ctx.restore();
+  }
+
+  _office(ctx, w, h, time) {
+    ctx.fillStyle='#252d35';ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#303b42';ctx.fillRect(0,h*.72,w,h*.28);
+    ctx.strokeStyle='#465057';ctx.lineWidth=1;
+    for(let x=0;x<w;x+=100){ctx.beginPath();ctx.moveTo(w/2+(x-w/2)*.6,h*.72);ctx.lineTo(x,h);ctx.stroke();}
+    for(let y=h*.78;y<h;y+=35){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+    for(let x=30;x<w-40;x+=180){
+      ctx.fillStyle='#465662';ctx.fillRect(x,55,110,90);
+      ctx.fillStyle='#354651';for(let k=0;k<6;k++)ctx.fillRect(x,60+k*14,110,3);
+      ctx.fillStyle='#c8c8a3';ctx.globalAlpha=.35+Math.sin(time*.7)*.03;ctx.fillRect(x,22,100,5);ctx.globalAlpha=1;
+      ctx.fillStyle='#3d454b';ctx.fillRect(x,h*.67,105,8);ctx.fillRect(x+10,h*.67+8,5,34);ctx.fillRect(x+90,h*.67+8,5,34);
+      ctx.fillStyle='#566666';ctx.fillRect(x+20,h*.67-29,37,26);ctx.fillStyle='#25373b';ctx.fillRect(x+23,h*.67-26,31,20);
+    }
+    // The office clock keeps moving. The work never ends.
+    ctx.save();ctx.translate(w-32,38);ctx.fillStyle='#c3c7be';ctx.beginPath();ctx.arc(0,0,13,0,TAU);ctx.fill();ctx.strokeStyle='#343b3e';
+    ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(0,0);ctx.lineTo(Math.sin(time*.15)*9,-Math.cos(time*.15)*9);ctx.stroke();ctx.restore();
   }
 
   _space(ctx, w, h, motion, time, playing, speed) {
@@ -174,7 +206,8 @@ export class SceneRenderer {
     const motion = reducedMotion ? 0 : time;
     ctx.save(); ctx.translate(position.x, position.y + arrival);
     ctx.globalAlpha = .2 + progress * .8;
-    if (world === 'earth') this._tank(ctx, width, motion, playing, shooting, tank, reducedMotion);
+    if (world === 'office') { this.drawClerk(ctx, motion, true); }
+    else if (world === 'earth') this._tank(ctx, width, motion, playing, shooting, tank, reducedMotion);
     else this._ship(ctx, width, motion, playing, shooting, ship, reducedMotion, progress);
     ctx.restore();
   }

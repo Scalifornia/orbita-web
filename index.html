@@ -7,7 +7,7 @@
   <meta name="description" content="Órbita — um jogo de naves em que cada letra é um disparo. Joga com o teu teclado, no computador ou no telemóvel.">
   <title>Órbita — Cada letra conta.</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css?v=20260928">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css?v=20261001">
 </head>
 <body>
 <div class="viewport" id="viewport">
@@ -22,11 +22,11 @@
 
   <main class="layout">
     <aside class="sidebar">
-      <div class="eyebrow"><span class="small-cross">✳</span> LIGAÇÃO ESTABELECIDA / 02</div>
-      <h1>Entra<br>na<br><em>órbita.</em></h1>
-      <p class="intro">Dedos rápidos. Reflexos acesos.<br>Cada letra é um impacto.</p>
+      <div class="eyebrow"><span class="small-cross">✳</span> BEM-VINDO À SEGUNDA-FEIRA</div>
+      <h1>Trabalha.<br>Sorri.<br><em>Repete.</em></h1>
+      <p class="intro">O café morreu. A reunião não.<br>Escreve depressa. Parece produtividade.</p>
       <div class="ship-card"><div><span class="eyebrow">A TUA NAVE</span><strong>INTERCEPTOR</strong><small>PROPULSÃO IÓNICA · ONLINE</small></div><img src="./assets/player-ship.png" alt="A tua nave original, com quatro propulsores azuis"></div>
-      <div class="record-card"><span class="eyebrow">O TEU RECORDE <span>↗</span></span><strong id="recordValue">00000</strong><span class="record-caption" id="recordCaption">Neste navegador · modo normal</span></div>
+      <div class="record-card"><span class="eyebrow">O TEU LEGADO EM NÚMEROS <span>↗</span></span><strong id="recordValue">00000</strong><span class="record-caption" id="recordCaption">Neste navegador · modo normal</span></div>
       <div class="instructions"><div><span>01</span><p>Escolhe um alvo.<br><b>Escreve a primeira letra.</b></p></div><div><span>02</span><p>Completa a palavra.<br><b>Cada letra dispara.</b></p></div><div><span>03</span><p>Mantém o ritmo.<br><b>Protege as tuas 3 vidas.</b></p></div></div>
       <div class="sidebar-bottom"><span>SISTEMAS PRONTOS.</span><span>PT · V.02</span></div>
     </aside>
@@ -49,20 +49,14 @@
         <section class="level-completion" id="levelCompletion" aria-live="polite" hidden><span class="eyebrow" id="completionTag">Nível concluído</span><h2 id="completionTitle" data-no-i18n></h2><div id="completionStats" data-no-i18n></div><div class="completion-progress"><i id="completionFill"></i></div><span id="completionProgress"></span><button id="nextLevelButton" class="primary-button">Próximo nível</button></section>
 
         <section class="overlay start-panel" id="startPanel" aria-labelledby="startHeading">
-          <div class="mission-tag"><span class="live-dot"></span> TODOS OS SISTEMAS ONLINE</div>
-          <h2 id="startHeading">Uma palavra de cada vez.<br><em>Uma aventura inteira.</em></h2>
-          <p>Escolhe uma história ou traz o teu livro.</p>
-
-          <div class="world-cards"><button data-world="space" aria-pressed="true"><span aria-hidden="true">✦</span><strong>Espaço</strong></button><button data-world="earth" aria-pressed="false"><span aria-hidden="true">▰</span><strong>Terra</strong></button></div><div class="mission-selection" id="missionSelection" data-no-i18n></div>
+          <h2 id="startHeading" class="sr-only" data-no-i18n>Órbita</h2>
           <button id="startButton" class="primary-button">Jogar <span>↗</span></button>
-          <button id="continueButton" class="continue-button" hidden><span>Continuar</span><small id="continueSummary" data-no-i18n></small></button>
-          <div class="menu-secondary"><button id="customButton" class="custom-button">Carregar texto/documento</button><button id="optionsButton" class="custom-button">Opções</button></div>
-          <button id="menuMusicButton" class="music-button"><span class="equalizer"><i></i><i></i><i></i><i></i></span><span id="menuMusicLabel">Ouvir música do menu</span></button>
+          <button id="optionsButton" class="custom-button">Opções</button>
         </section>
 
         <section class="overlay pause-panel" id="pausePanel" aria-labelledby="pauseHeading" hidden>
           <div class="mission-tag">RESPIRA. O ESPAÇO PODE ESPERAR.</div>
-          <h2 id="pauseHeading">Missão em pausa.</h2>
+          <h2 id="pauseHeading">Pausa para fingir que está tudo bem.</h2>
           <p id="pauseReason">Retoma quando estiveres pronto.</p>
           <button id="resumeButton" class="primary-button">Continuar missão <span>↗</span></button>
           <button id="exitButton" class="custom-button">Guardar e sair</button>
@@ -70,10 +64,10 @@
 
         <section class="overlay result-panel" id="resultPanel" aria-labelledby="resultHeading" hidden>
           <div class="mission-tag" id="resultTag">A PRÓXIMA VAGA É TUA.</div>
-          <h2 id="resultHeading">Missão terminada.</h2>
+          <h2 id="resultHeading">A produtividade foi dar uma volta.</h2>
           <strong class="result-score" id="resultScore">0</strong><span class="result-score-label">PONTOS</span>
           <div class="result-stats"><div><strong id="resultWave">1</strong><span>NÍVEL</span></div><div><strong id="resultAccuracy">100%</strong><span>PRECISÃO</span></div><div><strong id="resultWpm">0</strong><span>PAL./MIN</span></div></div>
-          <button id="retryButton" class="primary-button">Mais uma missão <span>↗</span></button>
+          <button id="retryButton" class="primary-button">Mais um turno <span>↗</span></button>
           <button id="menuButton" class="custom-button">Voltar ao início</button>
         </section>
       </div>
@@ -91,11 +85,15 @@
 <dialog id="optionsDialog" aria-labelledby="optionsTitle"><button class="dialog-close icon-button" data-close="optionsDialog" aria-label="Fechar">×</button><div class="eyebrow">A tua próxima missão</div><h2 id="optionsTitle">Opções</h2>          <div class="mission-settings">
 <label>Idioma dos menus<select id="uiLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
 <label>Idioma do texto<select id="textLanguage"><option value="pt">Português</option><option value="en">English</option></select></label>
-<label>Cenário<select id="world"><option value="space">Espaço</option><option value="earth">Terra</option></select></label>
-<label>Conto<select id="story"><option value="hare">A Lebre e a Tartaruga</option><option value="lion">O Leão e o Rato</option></select></label>
+<label>Cenário<select id="world"><option value="office">Escritório</option><option value="space">Espaço</option><option value="earth">Terra</option></select></label>
+<label>Conto<select id="story"><option value="office">A reunião que podia ser um email</option><option value="hare">A Lebre e a Tartaruga</option><option value="lion">O Leão e o Rato</option></select></label>
 <label class="wide">Escrita<select id="writing"><option value="basic">Básica · acentos opcionais</option><option value="advanced">Avançada · escrita exata</option></select></label>
 <p class="wide settings-note">Avançada: copia maiúsculas, acentos, pontuação e símbolos. Os espaços são automáticos.</p>
 </div>
+<div id="missionSelection" data-no-i18n></div>
+<button id="continueButton" class="continue-button" hidden><span>Continuar</span><small id="continueSummary" data-no-i18n></small></button>
+<button id="customButton" class="custom-button">Carregar texto/documento</button>
+<button id="menuMusicButton" class="music-button"><span id="menuMusicLabel">Ouvir música do menu</span></button>
 <div class="progression" role="group" aria-label="Progressão"><button data-progression="campaign" aria-pressed="true"><strong>Campanha</strong><span id="campaignLengthLabel">História completa</span></button><button data-progression="endless" aria-pressed="false"><strong>Infinito</strong><span>Sempre a acelerar</span></button></div>
           <div class="play-mode" role="group" aria-label="Modo de jogo"><button data-mode="reading" aria-pressed="true">Texto seguido</button><button data-mode="arcade" aria-pressed="false">Palavras soltas</button></div>
           <div class="difficulty" role="group" aria-label="Dificuldade">

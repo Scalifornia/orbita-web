@@ -34,14 +34,14 @@ test('entry settles within a second, never overshoots, and skips movement when r
 });
 
 test('both scenery worlds and image/fallback players render in compact and desktop canvases', () => {
-  for (const world of ['space', 'earth']) for (const width of [390, 980]) for (const hasImage of [false, true]) {
+  for (const world of ['space', 'earth', 'office']) for (const width of [390, 980]) for (const hasImage of [false, true]) {
     const scene = new SceneRenderer(), ctx = canvasMock(); scene.enter(0);
     const opts = { ...base, world, width, time: 8.1, shooting: true, position: { x: width / 2, y: 370 } };
     if (hasImage) opts.ship = opts.tank = { complete: true, naturalWidth: 100 };
     scene.drawBackground(ctx, opts); scene.drawPlayer(ctx, opts); ctx.balanced();
     assert.equal(ctx.globalAlpha, 1);
     assert.ok(ctx.calls.length < 1200, 'drawing budget stays bounded');
-    assert.equal(ctx.calls.some(call => call[0] === 'drawImage'), hasImage);
+    assert.equal(ctx.calls.some(call => call[0] === 'drawImage'), hasImage && world !== 'office');
   }
 });
 
@@ -57,7 +57,7 @@ test('movement follows game time, freezes with it, and does not accumulate parti
 });
 
 test('reduced motion yields identical static backgrounds even as time advances', () => {
-  for (const world of ['space', 'earth']) {
+  for (const world of ['space', 'earth', 'office']) {
     const scene = new SceneRenderer(), first = canvasMock(), second = canvasMock();
     scene.drawBackground(first, { ...base, world, reducedMotion: true });
     scene.drawBackground(second, { ...base, world, time: 23, reducedMotion: true });
@@ -68,14 +68,14 @@ test('reduced motion yields identical static backgrounds even as time advances',
 
 test('level transition proceeds pause, fade out, summary, fade in then done', () => {
   assert.equal(transitionFrame(0).phase, 'pause');
-  assert.equal(transitionFrame(.3).phase, 'out');
+  assert.equal(transitionFrame(.2).phase, 'out');
   assert.equal(transitionFrame(.5).phase, 'summary');
-  assert.equal(transitionFrame(3.05).phase, 'in');
-  assert.equal(transitionFrame(3.4).phase, 'done');
-  assert.ok(Math.abs(transitionFrame(0).duration - 3.3) < .001);
+  assert.equal(transitionFrame(1.05).phase, 'in');
+  assert.equal(transitionFrame(1.3).phase, 'done');
+  assert.ok(Math.abs(transitionFrame(0).duration - 1.2) < .001);
   assert.equal(transitionFrame(.5).opacity, 1);
-  assert.ok(transitionFrame(3.05).opacity > 0 && transitionFrame(3.05).opacity < 1);
-  assert.ok(Math.abs(transitionFrame(0, { chapter: true }).duration - 4.1) < .001);
+  assert.ok(transitionFrame(1.05).opacity > 0 && transitionFrame(1.05).opacity < 1);
+  assert.ok(Math.abs(transitionFrame(0, { chapter: true }).duration - 1.2) < .001);
 });
 
 test('transition advances once even with a dropped frame and can be reset', () => {

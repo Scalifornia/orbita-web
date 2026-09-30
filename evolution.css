@@ -27,3 +27,20 @@ button,select,input,textarea{touch-action:manipulation}button:focus-visible,sele
 @media(min-width:761px) and (max-height:780px){.start-panel{padding:20px 26px!important}.start-panel h2{font-size:32px}.start-panel .mission-tag{font-size:9px}.start-panel .world-cards{margin:12px 0}.start-panel .music-button{margin-top:7px}.continue-button{padding:10px 14px}}
 /* Keep the complete level summary visible even above a mobile keyboard. */
 .game-shell:has(#levelCompletion:not([hidden])) .reading-strip{display:none}.level-completion{padding:14px;gap:8px;overflow:auto}.level-completion:before{position:absolute;right:18px;top:16px;font-size:28px}.level-completion .eyebrow{margin:0;font-size:11px}.level-completion h2{margin:3px 0;font-size:clamp(22px,3vw,34px)}#completionStats{font-size:13px}.completion-progress{margin:5px 0;height:5px}.level-completion .primary-button{margin:4px 0 0;min-height:40px;padding:9px 16px}
+
+/* Two choices, no onboarding wall. */
+.start-panel{width:min(340px,calc(100% - 40px));padding:26px;gap:12px;}
+.start-panel #optionsButton{display:block;width:100%;margin-top:12px;min-height:48px;}
+.office .ship-card{display:none;}
+.office .field-coordinate{color:#ddd4ac;}
+.office .game-shell{border-color:#66716c;}
+.office .start-panel{background:#252f36f2;border-color:#788579;box-shadow:0 20px 70px #0005;}
+.office .primary-button{background:linear-gradient(110deg,#ded1a1,#a6bcae);color:#202d31;}
+@media(max-width:700px){
+ #readingStrip,#campaignProgress,.input-meta{display:none!important;}
+ .typing-dock{padding:5px 12px!important;min-height:0!important;}
+ .typing-dock .input-line{min-height:36px;}
+ .typing-dock .save-status:empty{display:none;}
+}
+
+.start-panel #optionsButton{border:1px solid #85958f;border-radius:10px;background:#39484b;color:#f1f5eb;font-size:16px;text-align:center;}

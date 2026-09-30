@@ -79,3 +79,10 @@ test('empty documents fail without manufacturing levels', () => {
   assert.throws(() => createCampaign({ title: 'Empty', text: '' }), RangeError);
   assert.throws(() => createCampaign(null), TypeError);
 });
+
+test('short rounds bound long sentences to twenty words without losing accents or punctuation', () => {
+ const source=Array.from({length:53},(_,i)=>`ação${i},`).join(' ');
+ const campaign=createCampaign(documentFromText(source),{targetWords:20,shortRounds:true});
+ assert.deepEqual(campaign.levels.map(l=>l.wordCount),[20,20,13]);
+ assert.equal(campaign.levels.map(l=>l.text).join(' '),source);
+});

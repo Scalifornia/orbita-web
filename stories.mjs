@@ -45,3 +45,27 @@ export const stories = {
     }
   }
 };
+
+// Original office satire; familiar fables remain available in Options.
+stories.office = {
+  "pt": {
+    "title": "A reunião que podia ser um email",
+    "text": "O chefe marcou uma reunião para descobrir por que ninguém tinha tempo para trabalhar. Todos chegaram atrasados por motivos profissionais. A impressora pediu papel. Depois pediu tinta. Finalmente pediu respeito, mas esse artigo não constava do orçamento aprovado pela direção. Na copa, o café estava frio e os sonhos também. Alguém sugeriu uma pausa. Criaram imediatamente um grupo de trabalho. O relatório dizia que a equipa era uma família. Curiosamente, só apareciam parentes quando havia horas extra por pagar novamente. Às dezoito horas chegou uma mensagem urgente: responder amanhã. Rui fechou o computador. Pela primeira vez, cumpriu uma ordem feliz!"
+  },
+  "en": {
+    "title": "The meeting that could have been an email",
+    "text": "The boss called a meeting to discover why nobody had time to work. Everyone arrived late for entirely professional reasons. The printer demanded paper, then ink, then respect. Finance rejected the final request because dignity was outside the annual budget. In the kitchen, the coffee was cold and so were our dreams. Someone suggested a break. Management formed a committee. The report said we were a family. Strangely, our relatives only appeared when there was unpaid overtime to discuss again. At six, an urgent email arrived: reply tomorrow. Sam closed the laptop. For once, following orders felt like a holiday!"
+  },
+  "fr": {
+    "title": "La réunion qui aurait pu être un mail",
+    "text": "Le chef lança une réunion pour comprendre pourquoi personne ne travaillait. Tout le monde arriva en retard, pour raisons professionnelles. L’imprimante réclama du papier, puis de l’encre, puis du respect. La direction refusa: la dignité dépassait largement le budget annuel. Dans la cuisine, le café était froid, comme nos rêves. Quelqu’un proposa une pause. On créa aussitôt un comité dédié. Le rapport disait que nous étions une famille. Les cousins apparaissaient surtout quand il fallait faire des heures supplémentaires gratuites. À dix-huit heures, un message urgent arriva: répondre demain. Léa ferma son ordinateur. Obéir devenait enfin une activité très agréable!"
+  },
+  "de": {
+    "title": "Das Meeting, das eine E-Mail hätte sein können",
+    "text": "Der Chef plante ein Meeting, um herauszufinden, warum niemand Zeit zum Arbeiten hatte. Alle kamen aus beruflichen Gründen zu spät. Der Drucker verlangte Papier, dann Tinte, dann Respekt. Die Buchhaltung lehnte Letzteres ab: Würde war im Jahresbudget leider nicht vorgesehen. In der Küche waren Kaffee und Träume kalt. Jemand schlug eine Pause vor. Sofort gründete die Leitung eine neue Arbeitsgruppe. Im Bericht stand, wir seien eine Familie. Verwandte erschienen allerdings nur dann, wenn wieder einmal unbezahlte Überstunden verteilt werden sollten. Um sechs kam eine dringende Nachricht: morgen antworten. Kim schloss den Laptop. Endlich machte das Befolgen einer Anweisung richtig Freude!"
+  },
+  "es": {
+    "title": "La reunión que pudo ser un correo",
+    "text": "El jefe convocó una reunión para descubrir por qué nadie tenía tiempo para trabajar. Todos llegaron tarde por motivos profesionales. La impresora pidió papel, luego tinta y finalmente respeto. La dirección rechazó lo último: la dignidad no tenía presupuesto asignado. En la cocina, el café estaba frío, igual que nuestros sueños. Alguien propuso descansar. Crearon inmediatamente una comisión de seguimiento. El informe decía que éramos una familia. Curiosamente, los parientes solo aparecían cuando había que repartir horas extra sin pagar. A las seis llegó un mensaje urgente: responder mañana. Ana cerró el ordenador. Por fin daba gusto cumplir una orden!"
+  }
+};

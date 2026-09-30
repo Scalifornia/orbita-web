@@ -41,7 +41,7 @@ function textHash(text) {
 }
 
 /** Levels never cross chapter/page boundaries or split a sentence mid-way. */
-export function createCampaign(document, { targetWords = 100, language = 'pt' } = {}) {
+export function createCampaign(document, { targetWords = 100, language = 'pt', shortRounds = false } = {}) {
   if (!document || typeof document.text !== 'string') throw new TypeError('A text document is required.');
   if (document.text.length > DOCUMENT_LIMITS.characters) throw new RangeError('Document is too long.');
   const target = Number.isFinite(targetWords) ? Math.max(20, Math.min(500, Math.round(targetWords))) : 100;
@@ -53,7 +53,11 @@ export function createCampaign(document, { targetWords = 100, language = 'pt' } 
     const section = sections[sectionIndex], body = normalizeDocumentText(section.text);
     if (!body) continue;
     if (section.kind === 'chapter' || chapterIndex < 0) { chapterIndex++; chapter = section.title || title; }
-    const blocks = sectionBlocks(body, target, locale);
+    const blocks = shortRounds ? [...body.matchAll(/\S+(?:\s+|$)/gu)].reduce((result, match, index) => {
+      if (index % target === 0) result.push({text:'', wordCount:0});
+      result.at(-1).text += match[0]; result.at(-1).wordCount++;
+      return result;
+    }, []).map(block => ({...block, text:block.text.trim()})) : sectionBlocks(body, target, locale);
     for (let index = 0; index < blocks.length; index++) {
       const block = blocks[index];
       levels.push({
