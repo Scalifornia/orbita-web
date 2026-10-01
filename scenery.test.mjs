@@ -11,7 +11,7 @@ function canvasMock() {
     createLinearGradient(...args) { calls.push(['linearGradient', ...args]); return { addColorStop() {} }; },
     createRadialGradient(...args) { calls.push(['radialGradient', ...args]); return { addColorStop() {} }; },
   };
-  for (const op of ['fillRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arc', 'ellipse', 'fill', 'stroke', 'translate', 'rotate', 'scale', 'setLineDash', 'quadraticCurveTo', 'drawImage']) {
+  for (const op of ['strokeRect', 'fillRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arc', 'ellipse', 'fill', 'stroke', 'translate', 'rotate', 'scale', 'setLineDash', 'quadraticCurveTo', 'drawImage']) {
     ctx[op] = (...args) => {
       for (const arg of args) if (typeof arg === 'number') assert.ok(Number.isFinite(arg), `${op} received a finite coordinate`);
       calls.push([op, ...args]);
@@ -66,16 +66,17 @@ test('reduced motion yields identical static backgrounds even as time advances',
   }
 });
 
-test('level transition proceeds pause, fade out, summary, fade in then done', () => {
-  assert.equal(transitionFrame(0).phase, 'pause');
-  assert.equal(transitionFrame(.2).phase, 'out');
-  assert.equal(transitionFrame(.5).phase, 'summary');
-  assert.equal(transitionFrame(1.05).phase, 'in');
-  assert.equal(transitionFrame(1.3).phase, 'done');
-  assert.ok(Math.abs(transitionFrame(0).duration - 1.2) < .001);
-  assert.equal(transitionFrame(.5).opacity, 1);
-  assert.ok(transitionFrame(1.05).opacity > 0 && transitionFrame(1.05).opacity < 1);
-  assert.ok(Math.abs(transitionFrame(0, { chapter: true }).duration - 1.2) < .001);
+test('each fade lasts 4.5 seconds and full-opacity reading gets its own time', () => {
+ assert.equal(transitionFrame(.2).phase,'pause');
+ assert.equal(transitionFrame(2).phase,'out');
+ assert.equal(transitionFrame(4.8).phase,'summary');
+ assert.equal(transitionFrame(12.7).opacity,1);
+ assert.equal(transitionFrame(14).phase,'in');
+ assert.equal(transitionFrame(17.4).phase,'done');
+ assert.ok(Math.abs(transitionFrame(0).duration-17.3)<.001);
+ const long=transitionFrame(16,{readingWords:60});
+ assert.equal(long.phase,'summary');assert.equal(long.opacity,1);
+ assert.equal(transitionFrame(14).showSummary,true,'text stays visible throughout fade-out');
 });
 
 test('transition advances once even with a dropped frame and can be reset', () => {
@@ -83,9 +84,9 @@ test('transition advances once even with a dropped frame and can be reset', () =
   assert.equal(transition.sample(1).active, false);
   transition.start(10, { score: 200 });
   assert.equal(transition.sample(10.5).advance, false);
-  const skipped = transition.sample(15);
+  const skipped = transition.sample(40);
   assert.equal(skipped.advance, true); assert.equal(skipped.active, false); assert.equal(skipped.payload.score, 200);
-  assert.equal(transition.sample(15).advance, false);
+  assert.equal(transition.sample(40).advance, false);
   transition.start(20); assert.equal(transition.sample(20).advance, false);
   transition.clear(); assert.equal(transition.sample(30).advance, false);
 });

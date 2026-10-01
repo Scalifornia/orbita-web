@@ -13,6 +13,20 @@ export const languages = Object.freeze([
 ].map(Object.freeze));
 
 export const messageRows = Object.freeze([
+["Turno terminado. Recuperaste a tua vida.", "Shift over. Your life is yours again.", "Service terminé. Ta vie est à toi.", "Schicht vorbei. Dein Leben gehört dir.", "Turno terminado. Recuperaste tu vida."],
+["RESPIRA. O EMAIL PODE ESPERAR.", "BREATHE. THE EMAIL CAN WAIT.", "RESPIRE. LE MAIL PEUT ATTENDRE.", "ATME. DIE E-MAIL KANN WARTEN.", "RESPIRA. EL CORREO PUEDE ESPERAR."],
+["Regras da pausa", "Break rules", "Règles de la pause", "Pausenregeln", "Reglas de la pausa"],
+["Boring Office — Pausa para não responder.", "Boring Office — A break from replying.", "Boring Office — Une pause sans répondre.", "Boring Office — Antwortpause.", "Boring Office — Una pausa sin responder."],
+["BORING OFFICE", "BORING OFFICE", "BORING OFFICE", "BORING OFFICE", "BORING OFFICE"],
+["Boring Office, início", "Boring Office, home", "Boring Office, accueil", "Boring Office, Start", "Boring Office, inicio"],
+["Boring Office", "Boring Office", "Boring Office", "Boring Office", "Boring Office"],
+["Uma pausa. Uma tarefa de cada vez. Sem reuniões.", "A break. One task at a time. No meetings.", "Une pause. Une tâche à la fois. Sans réunion.", "Eine Pause. Eine Aufgabe nach der anderen. Ohne Meetings.", "Una pausa. Una tarea cada vez. Sin reuniones."],
+["Sobrevive às vagas: alvos livres, ritmo rápido e missão infinita.", "Survive the waves: free targets, fast pace, endless mission.", "Survis aux vagues: cibles libres, rythme rapide, mission infinie.", "Überlebe die Wellen: freie Ziele, hohes Tempo, endlose Mission.", "Sobrevive a las oleadas: objetivos libres, ritmo rápido y misión infinita."],
+["Abranda e afina a escrita: história seguida com pontuação e acentos exatos.", "Slow down and refine your writing: a story with exact punctuation and accents.", "Ralentis et affine ton écriture: une histoire avec ponctuation et accents exacts.", "Schalte zurück: eine Geschichte mit exakter Zeichensetzung und Akzenten.", "Baja el ritmo: una historia con puntuación y acentos exactos."],
+["Idioma do jogo", "Game language", "Langue du jeu", "Spielsprache", "Idioma del juego"],
+["Pausa merecida. Sem pedir autorização.", "A deserved break. No permission needed.", "Une pause méritée. Sans demander la permission.", "Verdiente Pause. Ohne Genehmigung.", "Una pausa merecida. Sin pedir permiso."],
+["Departamento de pausas", "Department of breaks", "Département des pauses", "Pausenabteilung", "Departamento de pausas"],
+["Lê. Respira. O próximo prazo pode esperar.", "Read. Breathe. The next deadline can wait.", "Lis. Respire. La prochaine échéance attendra.", "Lies. Atme. Die nächste Frist kann warten.", "Lee. Respira. El próximo plazo puede esperar."],
 ["Órbita","Órbita","Órbita","Órbita","Órbita"],
 ["Escritório", "Office", "Bureau", "Büro", "Oficina"],
 ["RECURSOS DESUMANOS", "INHUMAN RESOURCES", "RESSOURCES INHUMAINES", "UNMENSCHLICHE RESSOURCEN", "RECURSOS INHUMANOS"],

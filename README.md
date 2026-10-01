@@ -1,10 +1,11 @@
-# Órbita — aventuras de escrita
+# Boring Office
+
 
 Jogo de escrita para computador e telemóvel. Esta evolução está na branch `codex/orbita-evolution`. Joga em [GitHub Pages](https://scalifornia.github.io/orbita-web/). A publicação acompanha esta branch de evolução; `main` conserva a baseline anterior.
 
 ## Começar
 
-O menu tem **Jogar**, **Continuar**, **Carregar texto/documento** e **Opções**. Em Opções escolhe cenário, conto, idioma do texto, escrita básica/exata, dificuldade e modo. Os idiomas dos menus e do texto são independentes: português, inglês, francês, alemão e espanhol. Há duas adaptações próprias de fábulas de Esopo em cada idioma.
+O menu tem **Jogar** e **Opções**. Continuar, documentos e ranking estão nas opções. Em Opções escolhe cenário, conto, idioma do texto, escrita básica/exata, dificuldade e modo. O idioma do jogo atualiza menus e textos pré-programados: português, inglês, francês, alemão e espanhol. Os documentos importados conservam o original. Há duas adaptações próprias de fábulas de Esopo em cada idioma.
 
 Para testar esta branch localmente, executa `python3 jogar.py` ou `python3 -m http.server 8766 --bind 127.0.0.1` e abre http://127.0.0.1:8766/. Não abras o HTML diretamente. Não é necessário instalar pacotes para jogar.
 
@@ -12,7 +13,7 @@ Para testar esta branch localmente, executa `python3 jogar.py` ou `python3 -m ht
 
 **Texto seguido + Campanha** percorre a história ou documento até ao fim, sem repetir palavras. Podes colar texto ou importar TXT, PDF com texto selecionável, DOCX e EPUB. A extração acontece no dispositivo, sem enviar documentos a um servidor. A pré-visualização permite conferir o texto e o título antes de jogar.
 
-Os capítulos e secções conservam a ordem. Dentro deles, as divisões procuram cerca de 100 palavras, respeitando parágrafos e frases. Uma frase longa pode ultrapassar essa referência. A passagem de nível inclui uma pausa curta, fade e resumo de pontos, precisão, palavras por minuto e progresso. O tanque ou nave entram em cena a cada nível.
+Os capítulos e secções conservam a ordem. Os documentos são divididos em blocos curtos; os monólogos de escritório respeitam as frases completas. A passagem de nível inclui uma pausa curta, fade e resumo de pontos, precisão, palavras por minuto e progresso. O tanque ou nave entram em cena a cada nível.
 
 Limites: ficheiros até 20 MB, texto até 1 milhão de caracteres, conteúdo expandido até 24 MB e PDFs até 1500 páginas. PDFs digitalizados precisam de OCR externo; documentos protegidos não são suportados. Extração de PDFs com colunas pode exigir correção na pré-visualização. As bibliotecas locais e respetivas licenças estão em `vendor/`.
 
@@ -69,3 +70,12 @@ A suite inclui regras originais, campanhas finitas, divisão natural, capítulos
 - Novo cenário Escritório e conto satírico original nos cinco idiomas; Espaço, Terra e as duas fábulas continuam disponíveis.
 - Novas campanhas: 20 palavras por nível, transição automática de 1,2 s e aumento de velocidade a cada nível (limitado a 2,5×). Partidas antigas conservam os seus níveis guardados.
 - Em ecrãs até 700 px, a história e os painéis de texto adicionais ficam ocultos; o teclado nativo e as palavras no campo continuam disponíveis.
+
+
+## Identidade Boring Office — 2 outubro 2026
+
+O escritório é o cenário principal, com dez monólogos originais sobre trabalho nos cinco idiomas. O seletor do topo atualiza menus e textos pré-programados; documentos importados nunca são traduzidos. As falas do escritório respeitam frases completas.
+
+Cada transição tem entrada de 4,5 s, leitura integral por pelo menos 8 s (ajustada a 150 palavras/minuto + 2 s) e saída de 4,5 s. Movimento reduzido elimina os fades, mas conserva a leitura. Próximo nível permite saltar voluntariamente.
+
+Cenários: Escritório usa leitura básica em campanha; Espaço propõe sobrevivência rápida com alvos livres; Terra propõe leitura exata com pontuação. As opções de cada cenário são recuperadas ao alternar.

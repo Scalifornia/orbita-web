@@ -44,3 +44,16 @@ button,select,input,textarea{touch-action:manipulation}button:focus-visible,sele
 }
 
 .start-panel #optionsButton{border:1px solid #85958f;border-radius:10px;background:#39484b;color:#f1f5eb;font-size:16px;text-align:center;}
+
+/* Boring Office: warm paper, ink and a single amber accent. */
+body{background:#1d2925;color:#eee8d6;} .viewport{background:radial-gradient(ellipse at 15% 15%,#34453b55,transparent 65%);}
+.header{border-color:#62705b55}.brand{font-size:clamp(15px,2vw,24px);letter-spacing:-.04em;white-space:nowrap}.brand svg{stroke:#dabc84;flex:none}.brand-dot{color:#dabc84}
+.sidebar h1{font-family:Georgia,serif;font-weight:400;font-size:clamp(48px,5.8vw,82px);letter-spacing:-.06em}.sidebar h1 em{background:none;color:#dbb97f;-webkit-text-fill-color:#dbb97f;font-style:italic}.intro{color:#c1cbbd;line-height:1.7}.eyebrow,.hud-label,.sidebar-bottom,.footer{color:#b9c5b3}.header-language select{background:#314239;color:#f1ecd9;border-color:#6c806e}
+.game-shell{background:#263b32;border-color:#6e806b;box-shadow:0 16px 60px #0e1f2740}.office .start-panel{background:#21362fea;border:1px solid #8fa38b;border-radius:18px;box-shadow:0 25px 60px #102b2466;backdrop-filter:blur(12px)}.office .primary-button,.primary-button{background:#dbb97f;color:#24362b;border-radius:9px}.primary-button:hover{background:#e6c998;transform:translateY(-2px)}button:focus-visible,select:focus-visible{outline:3px solid #e8c589;outline-offset:3px}.start-panel #optionsButton{background:#354b3e;border-color:#708774;color:#ede9d7;font-size:16px}
+.game-hud,.level-strip,.typing-dock{background:#25372f}.hud-wave strong{color:#d6b980}.record-card strong{color:#eee8d6}.input-meta,.intro,.record-caption{color:#bbc6b7}.level-track>span{background:#d7ba82}
+dialog{background:#273b31;color:#eee8d6;border-color:#829276}dialog select,dialog textarea,dialog input[type=text]{background:#1d3028;color:#f1eddd;border-color:#75816a}dialog .settings-note,dialog p{color:#c1cbb8}
+.level-completion{background:#263a30fa;color:#f0e7ce;align-content:center;gap:12px;padding:clamp(14px,3vw,32px);overflow-y:auto}.level-completion:before{display:none}.level-completion h2{font-size:clamp(20px,3vw,30px);color:#d9bd88}.level-completion .eyebrow{color:#c5d1ba}.level-completion #completionText{display:block;max-width:640px;margin:4px auto;font-family:Georgia,serif;font-size:clamp(18px,2.5vw,27px);line-height:1.55;color:#f0e7ce;text-wrap:pretty}.level-completion #completionStats{color:#b3c6ac;font-size:12px}.completion-progress{display:none}
+@media(max-width:700px){.brand{font-size:15px}.brand svg{width:24px}.header{gap:6px}.header nav{gap:5px}.header #helpButton{display:none}.level-completion{gap:5px}.level-completion #completionText{font-size:18px;line-height:1.4}.level-completion h2{font-size:19px}}
+@media(max-height:550px){.level-completion{display:block;padding:12px 22px}.level-completion #completionText{font-size:17px;line-height:1.35}.level-completion .eyebrow{font-size:10px}.level-completion .primary-button{min-height:34px;padding:6px 12px}}
+
+.sidebar h1{font-size:clamp(46px,4.4vw,62px);letter-spacing:-.065em}.level-completion{animation:none!important}.header-note{display:none}

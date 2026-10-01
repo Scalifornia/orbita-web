@@ -41,34 +41,45 @@ export class SceneRenderer {
   }
 
   drawClerk(ctx, time, player = false) {
-    ctx.save(); ctx.translate(0, Math.sin(time * 1.4) * 1.5);
-    ctx.fillStyle = player ? '#aebdc6' : '#d2bea0';
-    ctx.fillRect(-13, -18, 26, 25); ctx.fillStyle = '#282e37';
-    ctx.fillRect(-14, -20, 28, 5);
-    // Half-closed eyes and a resolutely unimpressed mouth.
-    ctx.fillRect(-9, -9, 6, 2); ctx.fillRect(3, -9, 6, 2); ctx.fillRect(-4, 0, 8, 1);
-    ctx.fillStyle = player ? '#6e9294' : '#7e8190';ctx.fillRect(-16, 8, 32, 17);
-    ctx.fillStyle = '#c78d69';ctx.fillRect(-2, 8, 4, 15);
-    if (player) { ctx.fillStyle='#323e45'; ctx.fillRect(-38,22,76,9);ctx.fillStyle='#d4c9a5';ctx.fillRect(24,11,10,11); }
+    const bob=Math.sin(time*1.1)*1.2;
+    ctx.save();ctx.translate(0,bob);ctx.lineWidth=2;ctx.strokeStyle='#263731';
+    ctx.fillStyle='#192c2a55';ctx.beginPath();ctx.ellipse(0,29,24,5,0,0,TAU);ctx.fill();
+    ctx.fillStyle=player?'#e5b56f':'#9eb4ab';ctx.beginPath();ctx.moveTo(-19,24);ctx.lineTo(-15,9);ctx.lineTo(13,9);ctx.lineTo(20,24);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#c77b56';ctx.fillRect(-2,10,4,13);
+    ctx.fillStyle=player?'#e6c4a0':'#ceac8b';ctx.beginPath();ctx.ellipse(0,-5,16,19,0,0,TAU);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#4c4940';ctx.beginPath();ctx.moveTo(-16,-8);ctx.lineTo(-16,-20);ctx.lineTo(-5,-27);ctx.lineTo(10,-24);ctx.lineTo(16,-13);ctx.lineTo(5,-17);ctx.lineTo(-7,-15);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#36463f';ctx.beginPath();ctx.moveTo(-11,-6);ctx.lineTo(-4,-5);ctx.moveTo(4,-5);ctx.lineTo(11,-7);ctx.moveTo(-5,6);ctx.quadraticCurveTo(0,3,7,6);ctx.stroke();
+    ctx.fillStyle='#36463f';ctx.fillRect(-7,-4,2,3);ctx.fillRect(7,-4,2,3);
+    if(player){ctx.fillStyle='#77634e';ctx.fillRect(-38,25,76,6);ctx.fillStyle='#e7d9b2';ctx.fillRect(23,12,11,13);ctx.strokeRect(23,12,11,13);ctx.beginPath();ctx.arc(36,18,4,-Math.PI/2,Math.PI/2);ctx.stroke();
+      ctx.strokeStyle='#eee4cb66';ctx.beginPath();ctx.moveTo(27,8);ctx.quadraticCurveTo(24,2,29,-4);ctx.stroke();}
     ctx.restore();
   }
 
-  _office(ctx, w, h, time) {
-    ctx.fillStyle='#252d35';ctx.fillRect(0,0,w,h);
-    ctx.fillStyle='#303b42';ctx.fillRect(0,h*.72,w,h*.28);
-    ctx.strokeStyle='#465057';ctx.lineWidth=1;
-    for(let x=0;x<w;x+=100){ctx.beginPath();ctx.moveTo(w/2+(x-w/2)*.6,h*.72);ctx.lineTo(x,h);ctx.stroke();}
-    for(let y=h*.78;y<h;y+=35){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-    for(let x=30;x<w-40;x+=180){
-      ctx.fillStyle='#465662';ctx.fillRect(x,55,110,90);
-      ctx.fillStyle='#354651';for(let k=0;k<6;k++)ctx.fillRect(x,60+k*14,110,3);
-      ctx.fillStyle='#c8c8a3';ctx.globalAlpha=.35+Math.sin(time*.7)*.03;ctx.fillRect(x,22,100,5);ctx.globalAlpha=1;
-      ctx.fillStyle='#3d454b';ctx.fillRect(x,h*.67,105,8);ctx.fillRect(x+10,h*.67+8,5,34);ctx.fillRect(x+90,h*.67+8,5,34);
-      ctx.fillStyle='#566666';ctx.fillRect(x+20,h*.67-29,37,26);ctx.fillStyle='#25373b';ctx.fillRect(x+23,h*.67-26,31,20);
+  _office(ctx,w,h,time){
+    const wall=ctx.createLinearGradient(0,0,w,h);wall.addColorStop(0,'#697e73');wall.addColorStop(1,'#344e46');ctx.fillStyle=wall;ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#253d35';ctx.fillRect(0,h*.73,w,h*.27);
+    // Tall windows, blind slats and a distant city keep the play area quiet.
+    const windowWidth=Math.min(140,w*.22);
+    for(let x=26;x<w-80;x+=200){
+      ctx.fillStyle='#b5c7b4';ctx.fillRect(x,50,windowWidth,h*.27);
+      ctx.fillStyle='#8bada0';for(let k=0;k<5;k++)ctx.fillRect(x+k*windowWidth/5,80+(k%3)*13,windowWidth/6,h*.27-30-(k%3)*13);
+      ctx.fillStyle='#526f6266';for(let y=53;y<50+h*.27;y+=13)ctx.fillRect(x,y,windowWidth,3);
+      ctx.strokeStyle='#e0d9bb';ctx.lineWidth=4;ctx.strokeRect(x,50,windowWidth,h*.27);
+      ctx.fillStyle='#d9d1a766';ctx.fillRect(x,19,windowWidth,4);
     }
-    // The office clock keeps moving. The work never ends.
-    ctx.save();ctx.translate(w-32,38);ctx.fillStyle='#c3c7be';ctx.beginPath();ctx.arc(0,0,13,0,TAU);ctx.fill();ctx.strokeStyle='#343b3e';
-    ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(0,0);ctx.lineTo(Math.sin(time*.15)*9,-Math.cos(time*.15)*9);ctx.stroke();ctx.restore();
+    ctx.strokeStyle='#72877733';ctx.lineWidth=1;for(let x=-w;x<w*2;x+=110){ctx.beginPath();ctx.moveTo(w/2+(x-w/2)*.3,h*.73);ctx.lineTo(x,h);ctx.stroke();}
+    // Desks at the back, paperwork, mugs and sleeping monitors.
+    for(let x=30;x<w-70;x+=200){const y=h*.72;
+      ctx.fillStyle='#1d342b44';ctx.beginPath();ctx.ellipse(x+56,y+32,70,12,0,0,TAU);ctx.fill();
+      ctx.fillStyle='#b6976c';ctx.fillRect(x,y,130,7);ctx.fillStyle='#253b31';ctx.fillRect(x+9,y+7,5,40);ctx.fillRect(x+116,y+7,5,40);
+      ctx.fillStyle='#283c35';ctx.fillRect(x+20,y-38,43,31);ctx.fillRect(x+38,y-7,8,7);ctx.fillStyle='#769489';ctx.fillRect(x+24,y-34,35,23);
+      ctx.fillStyle='#c5cab4';ctx.fillRect(x+31,y-25,18,2);ctx.fillRect(x+31,y-19,10,2);
+      ctx.fillStyle='#ddd4b5';ctx.fillRect(x+75,y-5,25,4);ctx.fillRect(x+78,y-9,25,3);ctx.fillStyle='#bf865e';ctx.fillRect(x+108,y-15,10,15);
+    }
+    // A plant is the only colleague visibly growing.
+    ctx.save();ctx.translate(w-26,h*.72);ctx.fillStyle='#ba8e68';ctx.fillRect(-11,0,22,23);ctx.strokeStyle='#8eab7b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-3,-49);ctx.stroke();
+    ctx.fillStyle='#86a478';for(let k=0;k<4;k++){ctx.beginPath();ctx.ellipse(k%2?6:-8,-12-k*10,11,5,k%2?-.6:.6,0,TAU);ctx.fill();}ctx.restore();
+    ctx.save();ctx.translate(w-31,29);ctx.fillStyle='#ede1bc';ctx.beginPath();ctx.arc(0,0,14,0,TAU);ctx.fill();ctx.strokeStyle='#3e5348';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-6,-5);ctx.lineTo(0,0);ctx.lineTo(Math.sin(time*.15)*10,-Math.cos(time*.15)*10);ctx.stroke();ctx.restore();
   }
 
   _space(ctx, w, h, motion, time, playing, speed) {

@@ -25,7 +25,7 @@ export class Adventure {
   }
 
   begin(document, settings) {
-    const campaign = createCampaign(document, { language: settings.textLanguage, targetWords: 20, shortRounds: true });
+    const campaign = createCampaign(document, { language: settings.textLanguage, targetWords: 20, shortRounds: settings.story !== 'office' || document.title !== 'Boring Office' });
     // A symbols-only section has no playable targets in basic writing. Preserve
     // the source's chapter numbers, but recompute the playable boundaries.
     campaign.levels = campaign.levels.filter(level => wordsFromText(level.text, settings.advanced).length);

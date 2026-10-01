@@ -11,6 +11,7 @@ import { documentFromText } from './documentImport.mjs';
 import { SceneRenderer } from './scenery.mjs';
 import { LevelTransition } from './transitions.mjs';
 import { GameAudio } from './audio.mjs';
+import { WORLD_PRESETS } from './worlds.mjs';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('gameCanvas');
@@ -39,7 +40,7 @@ let customText = readSaved('orbita-text', '');
 if (typeof customText !== 'string') customText = '';
 let uiLanguage = readSaved('orbita-ui-language', 'pt');
 if (!Object.hasOwn(supportedLanguages,uiLanguage)) uiLanguage='pt';
-let textLanguage = readSaved('orbita-text-language', 'pt');
+let textLanguage = uiLanguage;
 if (!Object.hasOwn(supportedLanguages,textLanguage)) textLanguage='pt';
 let world = readSaved('orbita-world-v2', 'office');
 if (!['office','earth','space'].includes(world)) world='office';
@@ -91,6 +92,7 @@ function showRanking() {
 function updateMenu() {
   document.body.classList.toggle('earth', world === 'earth');
   document.body.classList.toggle('office', world === 'office');
+  $('worldDescription').textContent=t(world==='office'?'Uma pausa. Uma tarefa de cada vez. Sem reuniões.':world==='space'?'Sobrevive às vagas: alvos livres, ritmo rápido e missão infinita.':'Abranda e afina a escrita: história seguida com pontuação e acentos exatos.');
   document.querySelectorAll('[data-world]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.world===world)));
   document.querySelector('.field-coordinate').textContent = world === 'office' ? 'RECURSOS DESUMANOS' : world === 'earth' ? 'TERRA · MISSÃO FLORESTA' : 'SECTOR 07 · SISTEMA ÓRBITA';
   lastHudKey = '';
@@ -98,7 +100,7 @@ function updateMenu() {
   document.querySelector('.ship-card img').src = world === 'earth' ? tank.src : playerShip.src;
   document.querySelector('.ship-card img').alt = t(world === 'earth' ? 'O teu tanque' : 'A tua nave');
   document.querySelector('.ship-card strong').textContent = world === 'earth' ? 'TANK' : 'INTERCEPTOR';
-  for (const [id, value] of Object.entries({uiLanguage, textLanguage, world, story, writing: advanced ? 'advanced' : 'basic'})) $(id).value = value;
+  for (const [id, value] of Object.entries({uiLanguage, world, story, writing: advanced ? 'advanced' : 'basic'})) $(id).value = value;
   for (const option of $('story').options) option.textContent = stories[option.value][textLanguage].title;
   document.querySelectorAll('[data-difficulty]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.difficulty === difficulty)));
   document.querySelectorAll('[data-mode]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
@@ -188,7 +190,7 @@ function endTypedFragment() {
 }
 
 const typing = new TypingInput(input, (text) => {
-  if (game.status !== 'playing') return;
+  if (game.status !== 'playing' || transition.startedAt !== null) { typing.format(typedDisplay); return; }
   for (const char of (advanced ? text.normalize('NFC') : normalizeText(text))) {
     if (advanced ? !/^\S$/u.test(char) : !/^[\p{L}]$/u.test(char)) continue;
     snapshot();
@@ -241,6 +243,7 @@ function beginDocument(document) {
   game=adventure.begin(document,settings());updateMenu();activateGame();saveProgress();
 }
 function startGame() {
+  textLanguage=uiLanguage;
   const source=customText || stories[story][textLanguage].text;
   if(mode==='reading' && progression==='campaign') {
     beginDocument(documentFromText(source,customText?t('Texto personalizado'):stories[story][textLanguage].title));return;
@@ -283,12 +286,13 @@ function menu() {
 }
 function beginTransition() {
   const level=adventure.campaign?.levels[game.level-1];if(!level)return;
-  $('completionTag').textContent=t('Promovido a mais trabalho.');
+  $('completionTag').textContent=t('Pausa merecida. Sem pedir autorização.');
   $('completionTitle').textContent=level.title;
   $('completionStats').textContent=`${game.score} ${t('pontos')} · ${Math.round(game.accuracy)}% · ${Math.round(game.wpm)} ${t('pal./min')}`;
   const percent=Math.round(adventure.percent(game));
   $('completionFill').style.width=`${percent}%`;$('completionProgress').textContent=`${percent}%`;
-  transition.start(clock+.3,{}, {chapter:level.isChapterEnd,reducedMotion});saveProgress();
+  $('completionText').textContent=level.text;
+  transition.start(clock+.3,{}, {chapter:level.isChapterEnd,reducedMotion,readingWords:level.wordCount});saveProgress();
 }
 function advanceLevel() {
   if(game.status!=='transition')return;
@@ -305,7 +309,7 @@ function finish() {
   const saved = isBest ? save(recordKey(), game.score) : true;
   $('resultTag').textContent = isBest ? (saved ? 'NOVO RECORDE. BEM VOADO.' : 'NOVO RECORDE NESTA PARTIDA.') : 'A PRÓXIMA VAGA É TUA.';
   const victory = game.status === 'won';
-  $('resultHeading').textContent = victory ? 'Órbita conquistada.' : 'A produtividade foi dar uma volta.';
+  $('resultHeading').textContent = victory ? 'Turno terminado. Recuperaste a tua vida.' : 'A produtividade foi dar uma volta.';
   if (victory) { $('resultTag').textContent = t(adventure.campaign ? 'Campanha concluída' : '10 NÍVEIS. MISSÃO CUMPRIDA.'); if(adventure.campaign)adventure.complete(); } else saveProgress();
   sound.setScene('menu');
   tone(victory ? 'victory' : 'gameover');
@@ -653,15 +657,23 @@ $('customButton').addEventListener('click',()=>{$('optionsDialog').close();libra
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
 
 $('rankingButton').addEventListener('click', showRanking);
-for (const id of ['uiLanguage', 'textLanguage', 'world', 'story', 'writing']) $(id).addEventListener('change', () => {
-  if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); save('orbita-ui-language', uiLanguage); }
-  if (id === 'textLanguage') { textLanguage = $(id).value; save('orbita-text-language', textLanguage); }
-  if (id === 'world') { world = $(id).value; story = world === 'office' ? 'office' : world === 'earth' ? 'lion' : 'hare'; save('orbita-world-v2', world); save('orbita-story-v2', story); }
+for (const id of ['uiLanguage', 'world', 'story', 'writing']) $(id).addEventListener('change', () => {
+  if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); textLanguage=uiLanguage; save('orbita-ui-language', uiLanguage); save('orbita-text-language', textLanguage); }
+
+  if (id === 'world') {
+    save('boring-profile-'+world,{mode,progression,difficulty,advanced,story});
+    world=$(id).value;
+    const remembered=readSaved('boring-profile-'+world,null), preset=WORLD_PRESETS[world];
+    ({mode,progression,difficulty,advanced,story}=preset);
+    if(remembered && ['reading','arcade'].includes(remembered.mode) && ['campaign','endless'].includes(remembered.progression) && difficultyNames[remembered.difficulty] && stories[remembered.story]) ({mode,progression,difficulty,advanced,story}=remembered);
+    save('orbita-world-v2',world);save('orbita-story-v2',story);
+    save('orbita-mode',mode);save('orbita-progression',progression);save('orbita-difficulty',difficulty);save('orbita-advanced',advanced);
+  }
   if (id === 'story') { story = $(id).value; customText = ''; save('orbita-story-v2', story); save('orbita-text', ''); }
   if (id === 'writing') { advanced = $(id).value === 'advanced'; save('orbita-advanced', advanced); }
   updateMenu(); translatePage(); updateTypedEcho();
 });
-for (const id of ['uiLanguage','textLanguage']) {
+for (const id of ['uiLanguage']) {
   $(id).replaceChildren(...Object.entries(supportedLanguages).map(([value,label]) => { const option=document.createElement('option');option.value=value;option.textContent=label;return option; }));
 }
 menuUI = setupMenu({languages:supportedLanguages,getLanguage:()=>uiLanguage,onLanguage:value=>{$('uiLanguage').value=value;$('uiLanguage').dispatchEvent(new Event('change'));},onOptions:()=>{$('optionsDialog').showModal();}});
