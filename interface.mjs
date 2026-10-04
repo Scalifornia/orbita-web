@@ -1,4 +1,4 @@
-import {t,translatePage} from './locale.mjs?v=20261004e';
+import {t,translatePage} from './locale.mjs?v=20261004h';
 export function setupMenu({languages,getLanguage,onLanguage,onOptions}) {
   const select=document.getElementById('menuLanguage');
   for (const [value,label] of Object.entries(languages)) { const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option); }

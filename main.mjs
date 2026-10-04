@@ -2,16 +2,17 @@ import { drawThreat } from './office-art.mjs';
 import { GameEngine, normalizeText, wordsFromText } from './engine.mjs';
 import { TypingInput } from './input.mjs';
 import { stories } from './stories.mjs';
-import { setupMenu } from './interface.mjs?v=20261004e';
-import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs?v=20261004e';
+import { setupMenu } from './interface.mjs?v=20261004h';
+import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs?v=20261004h';
 import { Adventure } from './adventure.mjs';
-import { setupReader } from './reader.mjs?v=20261004e';
+import { setupReader } from './reader.mjs?v=20261004h';
 import { createCampaign } from './campaign.mjs';
-import { setupLibrary } from './library.mjs?v=20261004e';
+import { setupLibrary } from './library.mjs?v=20261004h';
 import { documentFromText } from './documentImport.mjs';
 import { SceneRenderer } from './scenery.mjs';
-import { LevelTransition } from './transitions.mjs';
-import { GameAudio } from './audio.mjs?v=20261004e';
+import { LevelTransition } from './transitions.mjs?v=20261004h';
+import { loadMusicFile, saveMusicFile } from './music-store.mjs';
+import { GameAudio } from './audio.mjs?v=20261004h';
 import { WORLD_PRESETS } from './worlds.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -234,7 +235,7 @@ function activateGame(restoredText='') {
   resultBest=Number(readSaved(recordKey(),0))||0;
   typing.exact=advanced;typing.reset();typing.format(typedDisplay);typing.applyFormat();setReadingSource();
   $('startPanel').hidden=true;$('resultPanel').hidden=true;$('pausePanel').hidden=true;$('levelCompletion').hidden=true;
-  $('readingStrip').hidden=mode!=='reading';$('typingDock').classList.toggle('reading',mode==='reading');
+  $('readBookButton').hidden=mode!=='reading';$('readingStrip').hidden=mode!=='reading';$('typingDock').classList.toggle('reading',mode==='reading');
   $('campaignProgress').hidden=!adventure.campaign;
   // Keep focus synchronous with the initiating tap for mobile Safari.
   focusInput();unlockAudio();sound.setScene('game');scenery.enter(clock);tone('start');
@@ -602,7 +603,7 @@ function frame(timestamp) {
 $('startButton').addEventListener('click', startGame);
 $('retryButton').addEventListener('click', () => adventure.record ? continueGame() : startGame());
 $('continueButton').addEventListener('click',continueGame);
-$('nextLevelButton').addEventListener('click',()=>{advanceLevel();transition.clear();$('levelCompletion').hidden=true;focusInput();});
+$('nextLevelButton').addEventListener('click',()=>{if(game.status!=='transition'||transitionPaused)return;advanceLevel();transition.clear();$('levelCompletion').hidden=true;scenery.enter(clock);focusInput();});
 $('pauseButton').addEventListener('click', () => pause());
 $('resumeButton').addEventListener('click', resume);
 $('exitButton').addEventListener('click', menu);
@@ -640,6 +641,44 @@ $('menuMusicButton').addEventListener('click', () => {
 $('musicStyle').value=sound.musicStyle;
 $('musicStyle').addEventListener('change',()=>{sound.setMusicStyle($('musicStyle').value);save('boring-music-style',sound.musicStyle);unlockAudio();});
 $('nextMusicButton').addEventListener('click',()=>{sound.nextMusic();$('musicStyle').value=sound.musicStyle;save('boring-music-style',sound.musicStyle);unlockAudio();});
+function syncCustomMusic() {
+  const option=$('musicStyle').querySelector('[value="custom"]');
+  option.disabled=!sound.customTrack;
+  $('removeMusicButton').hidden=!sound.customTrack;
+  $('musicStyle').value=sound.musicStyle;
+}
+let musicImportGeneration=0;
+$('uploadMusicButton').addEventListener('click',()=>{$('musicFile').value='';$('musicFile').click();});
+$('musicFile').addEventListener('change',async()=>{
+  const file=$('musicFile').files[0];if(!file)return;
+  const generation=++musicImportGeneration;
+  if(file.size>50*1024*1024){$('musicUploadStatus').textContent=t('Escolhe um ficheiro de áudio até 50 MB.');return;}
+  $('musicUploadStatus').textContent=t('A preparar a tua música…');
+  try {
+    await sound.unlock();
+    if(!await sound.setCustomMusic(file)||generation!==musicImportGeneration)return;
+    const stored=await saveMusicFile(file);
+    save('boring-music-style','custom');syncCustomMusic();
+    $('musicUploadStatus').textContent=t(stored?'Música carregada e guardada neste navegador.':'Música carregada para esta sessão. Não foi possível guardá-la.');
+  } catch {if(generation===musicImportGeneration)$('musicUploadStatus').textContent=t('Não foi possível abrir esta música. Experimenta MP3, WAV ou M4A.');}
+});
+$('removeMusicButton').addEventListener('click',async()=>{
+  musicImportGeneration++;sound.clearCustomMusic();syncCustomMusic();save('boring-music-style',sound.musicStyle);
+  await saveMusicFile(null);$('musicUploadStatus').textContent='';
+});
+loadMusicFile().then(async file=>{
+  if(!file||musicImportGeneration)return;
+  // Restoring needs an AudioContext; decode after the next authorised gesture.
+  const restore=async()=>{
+    if(musicImportGeneration)return;
+    musicImportGeneration++;
+    const style=sound.musicStyle;
+    await sound.unlock();
+    try {await sound.setCustomMusic(file);if(style!=='custom')sound.setMusicStyle(style);syncCustomMusic();}catch{sound.clearCustomMusic();syncCustomMusic();}
+  };
+  document.addEventListener('pointerdown',restore,{once:true});
+  document.addEventListener('keydown',restore,{once:true});
+});
 $('optionsAudioButton').addEventListener('click',()=>{$('optionsDialog').close();$('audioDialog').showModal();});
 $('audioSettingsButton').addEventListener('click', () => { pause(); $('audioDialog').showModal(); });
 $('audioListenButton').addEventListener('click', () => {

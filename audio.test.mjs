@@ -255,9 +255,9 @@ test('explosion preview works while paused without changing the current scene', 
 
 test('automatic music changes by level and ignores an obsolete pending track', async(t)=>{
  const io=setup(t),audio=new GameAudio({musicStyle:'auto'});
- await audio.unlock();assert.ok(io.requests.has('chills.m4a'));
+ await audio.unlock();assert.ok(io.requests.has('menu-loop.wav'));
  audio.setScene('game');audio.setMusicContext(2,'office');
- await io.resolve('chills.m4a');assert.equal(audio._music,null);
+ await io.resolve('menu-loop.wav');assert.equal(audio._music,null);
  await io.resolve('quirky-jazz.m4a');assert.equal(audio._music.trackKey,'jazz');
  audio.context.advance(2);audio.setMusicContext(3,'office');
  await io.resolve('synthwave-house.m4a');assert.equal(audio._music.trackKey,'synth');
@@ -266,7 +266,7 @@ test('automatic music changes by level and ignores an obsolete pending track', a
 
 test('manual mood and next track preserve pause and mute, and only selected music loads',async(t)=>{
  const io=setup(t),audio=new GameAudio({musicStyle:'calm'});
- assert.equal(io.requests.size,0);await audio.unlock();await io.resolve('chills.m4a');
+ assert.equal(io.requests.size,0);await audio.unlock();await io.resolve('menu-loop.wav');audio.setScene('game');await io.resolve('chills.m4a');
  audio.setMusicContext(6,'space');await flush();assert.equal(audio._music.trackKey,'calm');
  audio.setScene('paused');const count=io.requests.size;audio.nextMusic();assert.equal(io.requests.size,count);
  audio.setScene('game');assert.ok(io.requests.has('quirky-jazz.m4a'));
@@ -277,5 +277,20 @@ test('manual mood and next track preserve pause and mute, and only selected musi
 test('zero music volume avoids background downloads and restoring volume starts the selected track',async(t)=>{
  const io=setup(t),audio=new GameAudio({musicStyle:'synth',musicVolume:0});
  await audio.unlock();assert.equal(io.requests.has('synthwave-house.m4a'),false);
- audio.setMusicVolume(.2);await io.resolve('synthwave-house.m4a');assert.equal(audio._music.trackKey,'synth');
+ audio.setScene('game');audio.setMusicVolume(.2);await io.resolve('synthwave-house.m4a');assert.equal(audio._music.trackKey,'synth');
 });
+
+ test('level five introduces drum and bass and later levels keep energetic tracks',()=>{
+ const audio=new GameAudio({musicStyle:'auto'});audio.setScene('game');
+ audio.setMusicContext(4,'office');assert.equal(audio.currentTrack().id,'action');
+ audio.setMusicContext(5,'office');assert.equal(audio.currentTrack().id,'dnb');
+ for(let level=5;level<40;level++){audio.setMusicContext(level,'space');assert.ok(['dnb','jungle','electro'].includes(audio.currentTrack().id));}
+ audio.setScene('menu');assert.equal(audio.currentTrack().key,'menu');
+ });
+ test('custom audio overrides every level and menu, removal restores automatic music',async t=>{
+ setup(t);const audio=new GameAudio({musicStyle:'auto'});await audio.unlock();
+ await audio.setCustomMusic({name:'my music.mp3',arrayBuffer:async()=>new ArrayBuffer(8)});
+ assert.equal(audio.currentTrack().title,'my music.mp3');audio.setScene('game');audio.setMusicContext(9,'space');assert.equal(audio.currentTrack().key,'custom:1');
+ audio.setScene('menu');assert.equal(audio.currentTrack().key,'custom:1');
+ audio.clearCustomMusic();assert.equal(audio.currentTrack().key,'menu');assert.equal(audio.musicStyle,'auto');
+ });

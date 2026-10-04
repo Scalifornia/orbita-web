@@ -1,4 +1,4 @@
-import {t,translatePage} from './locale.mjs?v=20261004e';
+import {t,translatePage} from './locale.mjs?v=20261004h';
 export function setupReader() {
   const $=id=>document.getElementById(id);
   let pages=[],index=0,size=20;

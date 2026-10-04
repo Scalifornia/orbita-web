@@ -1,6 +1,6 @@
-import { catalogs, languages } from './locale-data.mjs?v=20261004e';
+import { catalogs, languages } from './locale-data.mjs?v=20261004h';
 
-export { catalogs, previewWords } from './locale-data.mjs?v=20261004e';
+export { catalogs, previewWords } from './locale-data.mjs?v=20261004h';
 export const supportedLanguages = Object.freeze(Object.fromEntries(languages.map(({ code, label }) => [code, label])));
 export const languageTags = Object.freeze(Object.fromEntries(languages.map(({ code, tag }) => [code, tag])));
 let language = 'pt';

@@ -68,3 +68,9 @@ dialog{background:#273b31;color:#eee8d6;border-color:#829276}dialog select,dialo
 .header-worlds button:disabled,.header-writing button:disabled,.break-tools select:disabled{opacity:.5;cursor:default}
 
 @media(min-width:761px){.sidebar{min-height:0;overflow-y:auto;scrollbar-width:thin;padding-right:5px}.sidebar>*{flex-shrink:0}.sidebar-bottom{padding-bottom:6px}}
+
+/* Matching menu controls and a compact typing dock in every world. */
+.brand-copy{display:flex;flex-direction:column;gap:3px}.brand-copy small{font:italic 11px/1.2 Georgia,serif;letter-spacing:.02em;color:#c6c9bb;opacity:.7}
+.start-language{display:block;position:relative;margin:0 0 12px}.start-language>span:not([aria-hidden]){position:absolute;left:16px;top:7px;font-size:9px;pointer-events:none;opacity:.7}.start-language select{display:block;width:100%;max-width:none;min-height:54px;border-radius:10px;padding:20px 14px 8px;background:#39484b;font-size:16px;color:#f1f5eb;cursor:pointer}
+#readingStrip,#campaignProgress{display:none!important}.typing-dock{padding:10px 16px!important;min-height:0!important}.typing-dock .input-meta{padding-top:4px}.custom-music-controls{display:flex;gap:12px;flex-wrap:wrap}#musicUploadStatus{font-size:12px;color:#dbb97f}
+@media(max-width:760px){.brand-copy small{font-size:9px}.start-language select{min-height:48px}.typing-dock{padding:5px 12px!important}}

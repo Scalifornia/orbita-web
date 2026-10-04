@@ -6,6 +6,11 @@ export const MUSIC_LIBRARY = Object.freeze([
   { id: 'calm', title: 'Chills · Holizna', url: new URL('./assets/chills.m4a', import.meta.url) },
   { id: 'jazz', title: 'Quirky Jazz · Spring Spring', url: new URL('./assets/quirky-jazz.m4a', import.meta.url) },
   { id: 'synth', title: 'Synthwave House Loop · Fupi', url: new URL('./assets/synthwave-house.m4a', import.meta.url) },
+  { id:'ambient',title:'Singularity Calm · Vitalezzz',url:new URL('./assets/singularity-calm.m4a',import.meta.url) },
+  { id:'action',title:'Singularity Action · Vitalezzz',url:new URL('./assets/singularity-action.m4a',import.meta.url) },
+  { id:'dnb',title:'Black Diamond · Joth',url:new URL('./assets/black-diamond.m4a',import.meta.url) },
+  { id:'jungle',title:'Final Hour · isaiah658',url:new URL('./assets/final-hour.m4a',import.meta.url) },
+  { id:'electro',title:'Electronic Outlaw · Zane Little',url:new URL('./assets/electronic-outlaw.m4a',import.meta.url) },
 ]);
 const SHOT = new URL('./assets/missile_launch.wav', import.meta.url);
 const clamp = (value, low, high, fallback) => Number.isFinite(Number(value)) ? Math.min(high, Math.max(low, Number(value))) : fallback;
@@ -24,7 +29,7 @@ export class GameAudio {
     this.musicVolume = clamp(musicVolume, 0, 1, 0.25);
     this.sfxVolume = clamp(sfxVolume, 0, 1, 0.5);
     this.scene = 'menu';
-    this.musicStyle = ['auto','calm','jazz','synth','original'].includes(musicStyle) ? musicStyle : 'auto';
+    this.musicStyle = ['auto','original','custom',...MUSIC_LIBRARY.map(track=>track.id)].includes(musicStyle) ? musicStyle : 'auto';
     this.musicLevel = 1; this.musicWorld = 'office'; this.musicShift = 0;
     this.intensity = 1;
     this.context = null;
@@ -117,7 +122,7 @@ export class GameAudio {
   }
 
   setMusicStyle(style) {
-    if (!['auto','calm','jazz','synth','original'].includes(style)) return;
+    if (!['auto','original','custom',...MUSIC_LIBRARY.map(track=>track.id)].includes(style)) return;
     this.musicStyle=style; this.musicShift=0; this._requestMusic();
   }
 
@@ -129,16 +134,44 @@ export class GameAudio {
   }
 
   nextMusic() {
-    if (this.musicStyle==='original') this.musicStyle='auto';
+    if (['original','custom'].includes(this.musicStyle)) this.musicStyle='auto';
     if (this.musicStyle==='auto') this.musicShift++;
     else this.musicStyle=MUSIC_LIBRARY[(MUSIC_LIBRARY.findIndex(track=>track.id===this.musicStyle)+1)%MUSIC_LIBRARY.length].id;
     this._requestMusic();
   }
 
+  async setCustomMusic(file) {
+    if (!this.context || !file) throw new Error('Audio unavailable');
+    const request = (this._customRequest || 0) + 1;
+    this._customRequest = request;
+    const buffer = await this.context.decodeAudioData(await file.arrayBuffer());
+    if (request !== this._customRequest) return false;
+    if (this.customTrack) this._buffers.delete(this.customTrack.key);
+    const key = `custom:${request}`;
+    this.customTrack = {key,url:key,title:file.name};
+    this._buffers.set(key,Promise.resolve(buffer));
+    this.setMusicStyle('custom');
+    return true;
+  }
+
+  clearCustomMusic() {
+    this._customRequest = (this._customRequest || 0) + 1;
+    if (this.customTrack) this._buffers.delete(this.customTrack.key);
+    this.customTrack = null;
+    if (this.musicStyle === 'custom') this.setMusicStyle('auto');
+  }
+
   currentTrack() {
-    if (this.musicStyle==='original') return {url:TRACKS[this.scene],key:this.scene,title:this.scene==='game'?'Binary Groove':'Original · Menu'};
-    const index=this.musicStyle==='auto' ? ((this.scene==='game'?this.musicLevel-1+{office:0,earth:1,space:2}[this.musicWorld]:0)+this.musicShift)%MUSIC_LIBRARY.length : MUSIC_LIBRARY.findIndex(track=>track.id===this.musicStyle);
-    const track=MUSIC_LIBRARY[Math.max(0,index)];
+    if (this.musicStyle === 'custom' && this.customTrack) return this.customTrack;
+    if (this.scene !== 'game' || this.musicStyle === 'original') return {url:TRACKS[this.scene],key:this.scene,title:this.scene==='game'?'Binary Groove':'Original · Menu'};
+    let id = this.musicStyle;
+    if (id === 'auto' || id === 'custom') {
+      const pool = this.musicLevel < 3 ? ['calm','jazz','ambient'] : this.musicLevel < 5 ? ['synth','action','original'] : this.musicLevel < 8 ? ['dnb','jungle'] : ['jungle','electro','dnb'];
+      const start = this.musicLevel < 3 ? 1 : this.musicLevel < 5 ? 3 : this.musicLevel < 8 ? 5 : 8;
+      id = pool[(this.musicLevel-start+this.musicShift+{office:0,earth:1,space:2}[this.musicWorld])%pool.length];
+    }
+    if (id === 'original') return {url:TRACKS.game,key:'game',title:'Binary Groove'};
+    const track = MUSIC_LIBRARY.find(track=>track.id===id) || MUSIC_LIBRARY[0];
     return {...track,key:track.id};
   }
 

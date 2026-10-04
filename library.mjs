@@ -1,6 +1,6 @@
 import {importDocument,documentFromText} from './documentImport.mjs';
 import {createCampaign} from './campaign.mjs';
-import {t,translatePage} from './locale.mjs?v=20261004e';
+import {t,translatePage} from './locale.mjs?v=20261004h';
 const $=id=>document.getElementById(id);
 const messages={emptyDocument:'Não foi encontrado texto legível.',scannedPdf:'Este PDF não contém texto selecionável. O reconhecimento de texto (OCR) ainda não está disponível.',documentTooLarge:'Documento demasiado grande.',documentTooLong:'Documento demasiado grande.',unsupportedFormat:'Formato não suportado.'};
 export function setupLibrary({getLanguage,onStart,onDefault,onRead}){
