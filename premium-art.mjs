@@ -1,5 +1,5 @@
-import {drawThreat,drawOfficePlayer} from './office-art.mjs?v=20261005b';
-import {BOSSES} from './missions.mjs?v=20261005b';
+import {drawThreat,drawOfficePlayer} from './office-art.mjs?v=20261005c';
+import {BOSSES} from './missions.mjs?v=20261005c';
 /** Bounded environmental storytelling; the centre is deliberately quiet. */
 export class PremiumArt{
  constructor(){this.background=new Image();this.background.src=new URL('./assets/office-cinematic.webp',import.meta.url);this.pixels=document.createElement('canvas');this.pixels.width=320;this.pixels.height=180;this.pc=this.pixels.getContext('2d');this.sprite=document.createElement('canvas');this.sprite.width=this.sprite.height=64;this.sc=this.sprite.getContext('2d');}

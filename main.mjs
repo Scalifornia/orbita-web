@@ -1,22 +1,22 @@
-import {loadProfile,saveProfile,SkillSession,practiceWords,unlockAchievements,career} from './skill-model.mjs?v=20261005b';
-import {RUNS,OFFICE_WORDS,dailyChallenge,bossLevels,shareResult,THREATS,BOSSES} from './missions.mjs?v=20261005b';
-import {PremiumArt,dangerLevel}from './premium-art.mjs?v=20261005b';
-import {renderProfile,renderRunResult,downloadResult}from './premium-ui.mjs?v=20261005b';
-import { drawThreat } from './office-art.mjs?v=20261005b';
-import { GameEngine, normalizeText, wordsFromText } from './engine.mjs?v=20261005b';
+import {loadProfile,saveProfile,SkillSession,practiceWords,unlockAchievements,career} from './skill-model.mjs?v=20261005c';
+import {RUNS,OFFICE_WORDS,dailyChallenge,bossLevels,shareResult,THREATS,BOSSES} from './missions.mjs?v=20261005c';
+import {PremiumArt,dangerLevel}from './premium-art.mjs?v=20261005c';
+import {renderProfile,renderRunResult,downloadResult}from './premium-ui.mjs?v=20261005c';
+import { drawThreat } from './office-art.mjs?v=20261005c';
+import { GameEngine, normalizeText, wordsFromText } from './engine.mjs?v=20261005c';
 import { TypingInput } from './input.mjs';
 import { stories } from './stories.mjs';
-import { setupMenu } from './interface.mjs?v=20261005b';
-import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs?v=20261005b';
-import { Adventure } from './adventure.mjs?v=20261005b';
-import { setupReader } from './reader.mjs?v=20261005b';
+import { setupMenu } from './interface.mjs?v=20261005c';
+import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs?v=20261005c';
+import { Adventure } from './adventure.mjs?v=20261005c';
+import { setupReader } from './reader.mjs?v=20261005c';
 import { createCampaign } from './campaign.mjs';
-import { setupLibrary } from './library.mjs?v=20261005b';
+import { setupLibrary } from './library.mjs?v=20261005c';
 import { documentFromText } from './documentImport.mjs';
-import { SceneRenderer } from './scenery.mjs?v=20261005b';
-import { LevelTransition } from './transitions.mjs?v=20261005b';
+import { SceneRenderer } from './scenery.mjs?v=20261005c';
+import { LevelTransition } from './transitions.mjs?v=20261005c';
 import { loadMusicFile, saveMusicFile } from './music-store.mjs';
-import { GameAudio } from './audio.mjs?v=20261005b';
+import { GameAudio } from './audio.mjs?v=20261005c';
 import { WORLD_PRESETS } from './worlds.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -264,6 +264,7 @@ function activateGame(restoredText='') {
   handleEvents();updateHud();updateTypedEcho();translatePage();
 }
 function beginDocument(document,officeFinal=false) {
+  finishSkill(false);
   runKind='campaign';runIdentity=null;
   mode='reading';progression='campaign';
   game=adventure.begin(document,settings());
@@ -271,6 +272,7 @@ function beginDocument(document,officeFinal=false) {
   updateMenu();activateGame();saveProgress();
 }
 function startGame() {
+  finishSkill(false);
   textLanguage=textOverride==='auto'?uiLanguage:textOverride;
   runKind='campaign';runIdentity=null;
   const source=customText || stories[story][textLanguage].text;
@@ -280,6 +282,7 @@ function startGame() {
   adventure.detach();runKind=progression==='endless'?'endless':'campaign';game=new GameEngine({...settings(),customText:source}).start();activateGame();
 }
 function continueGame() {
+  finishSkill(false);
   runKind='campaign';runIdentity=null;
   $('optionsDialog').close();
   const saved=adventure.resume();if(!saved)return;
@@ -304,6 +307,7 @@ function resume() {
 function menu() {
   finishSkill(false);document.body.classList.remove('retro');sound.setRetro(false);if(menuConfig){({difficulty,mode,progression,advanced,world,story}=menuConfig);menuConfig=null;}
   saveProgress();adventure.detach();transition.clear();transitionPaused=false;
+  runKind=progression==='endless'?'endless':'campaign';runIdentity=null;
   game=new GameEngine();sound.setScene('menu');
   glyphFragments=[];destroyedLetters.clear();typedDisplay='';pendingFinish=null;
   projectiles=[];particles=[];rings=[];ghosts.clear();snapshots.clear();flashes.clear();

@@ -1,4 +1,4 @@
-import {createChiptune} from './chiptune.mjs?v=20261005b';
+import {createChiptune} from './chiptune.mjs?v=20261005c';
 const TRACKS = {
   menu: new URL('./assets/menu-loop.wav', import.meta.url),
   game: new URL('./assets/binary-groove.wav', import.meta.url),

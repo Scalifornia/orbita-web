@@ -1,5 +1,5 @@
-import {career,ACHIEVEMENTS}from './skill-model.mjs?v=20261005b';
-import {t}from './locale.mjs?v=20261005b';
+import {career,ACHIEVEMENTS}from './skill-model.mjs?v=20261005c';
+import {t}from './locale.mjs?v=20261005c';
 const make=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
 export function drawTrend(canvas,sessions){const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);const rows=sessions.slice(-20);if(!rows.length)return;c.strokeStyle='#47574f';for(let i=1;i<4;i++){c.beginPath();c.moveTo(0,i*h/4);c.lineTo(w,i*h/4);c.stroke();}const max=Math.max(80,...rows.map(s=>s.wpm));for(const [field,color,scale]of [['wpm','#eac681',max],['accuracy','#8dddd6',100]]){c.strokeStyle=color;c.lineWidth=3;c.beginPath();rows.forEach((s,i)=>{const x=8+i*(w-16)/Math.max(1,rows.length-1),y=h-8-s[field]/scale*(h-16);i?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();}}
 export function renderProfile(profile){

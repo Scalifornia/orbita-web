@@ -1,4 +1,4 @@
-import { threatFor, THREATS } from './missions.mjs?v=20261005b';
+import { threatFor, THREATS } from './missions.mjs?v=20261005c';
 /** Normalize typed Portuguese text to the letters used by the game. */
 export function normalizeText(text) {
   return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

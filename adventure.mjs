@@ -1,4 +1,4 @@
-import { GameEngine, wordsFromText } from './engine.mjs?v=20261005b';
+import { GameEngine, wordsFromText } from './engine.mjs?v=20261005c';
 import { createCampaign, campaignProgress } from './campaign.mjs';
 import { createProgressStore } from './progress.mjs';
 
