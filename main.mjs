@@ -1,3 +1,4 @@
+import { drawThreat } from './office-art.mjs';
 import { GameEngine, normalizeText, wordsFromText } from './engine.mjs';
 import { TypingInput } from './input.mjs';
 import { stories } from './stories.mjs';
@@ -38,10 +39,10 @@ let progression = readSaved('orbita-progression', 'campaign');
 if (!['campaign', 'endless'].includes(progression)) progression = 'campaign';
 let customText = readSaved('orbita-text', '');
 if (typeof customText !== 'string') customText = '';
-let uiLanguage = readSaved('orbita-ui-language', 'pt');
-if (!Object.hasOwn(supportedLanguages,uiLanguage)) uiLanguage='pt';
+let uiLanguage = readSaved('boring-office-ui-language-v2', 'en');
+if (!Object.hasOwn(supportedLanguages,uiLanguage)) uiLanguage='en';
 let textLanguage = uiLanguage;
-if (!Object.hasOwn(supportedLanguages,textLanguage)) textLanguage='pt';
+if (!Object.hasOwn(supportedLanguages,textLanguage)) textLanguage='en';
 let world = readSaved('orbita-world-v2', 'office');
 if (!['office','earth','space'].includes(world)) world='office';
 let story = readSaved('orbita-story-v2', 'office');
@@ -292,7 +293,7 @@ function beginTransition() {
   const percent=Math.round(adventure.percent(game));
   $('completionFill').style.width=`${percent}%`;$('completionProgress').textContent=`${percent}%`;
   $('completionText').textContent=level.text;
-  transition.start(clock+.3,{}, {chapter:level.isChapterEnd,reducedMotion,readingWords:level.wordCount});saveProgress();
+  transition.start(clock,{}, {chapter:level.isChapterEnd,reducedMotion,readingWords:level.wordCount});saveProgress();
 }
 function advanceLevel() {
   if(game.status!=='transition')return;
@@ -486,7 +487,7 @@ function updateEffects(dt) {
 }
 
 function drawBackground(time) {
-  scenery.drawBackground(ctx,{width,height,time,world,playing:game.status==='playing',speed:game.speedMultiplier,reducedMotion});
+  scenery.drawBackground(ctx,{width,height,time,world,level:game.level,playing:game.status==='playing',speed:game.speedMultiplier,reducedMotion});
 }
 function drawShip(time) {
   scenery.drawPlayer(ctx,{width,height,time,world,playing:game.status==='playing',reducedMotion,position:shipPosition(),shooting:(flashes.get('ship')||0)>clock,ship:playerShip,tank});
@@ -501,7 +502,7 @@ function drawEnemy(enemy, demo = false) {
   ctx.fillStyle = active ? '#5b263e' : '#252b58'; ctx.strokeStyle = neon; ctx.lineWidth = 1;
   ctx.shadowColor = neon; ctx.shadowBlur = reducedMotion ? 0 : active ? 12 : 6;
   if (flash) ctx.fillStyle = '#bcffeb';
-  if (world === 'office') { scenery.drawClerk(ctx,reducedMotion?0:clock+enemy.id); } else if (world === 'earth') { ctx.fillRect(-18,-7,36,15); ctx.strokeRect(-18,-7,36,15); ctx.fillRect(-9,-13,18,10); ctx.fillRect(-2,-23,4,14); } else { ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(6, -4); ctx.lineTo(18, -8); ctx.lineTo(12, 2); ctx.lineTo(5, 4); ctx.lineTo(0, 12); ctx.lineTo(-5, 4); ctx.lineTo(-12, 2); ctx.lineTo(-18, -8); ctx.lineTo(-6, -4); ctx.closePath(); ctx.fill(); ctx.stroke(); } ctx.shadowBlur = 0;
+  drawThreat(ctx,{world,id:enemy.id,time:reducedMotion?0:clock,active,flash}); ctx.shadowBlur = 0;
   ctx.fillStyle = active ? '#bbff4b' : '#64deff'; ctx.fillRect(-2, -2, 4, 4);
   const textY = 32;
   ctx.font = `500 ${fontSize}px "Space Grotesk", monospace`;
@@ -564,7 +565,8 @@ function frame(timestamp) {
   if (!frozen) clock += dt;
   snapshot();if(!frozen && transition.startedAt===null)game.tick(dt);handleEvents();
   if(!frozen && transition.startedAt!==null) {
-    const step=transition.sample(clock);if(step.advance)advanceLevel();
+    const step=transition.sample(clock);if(step.advance){advanceLevel();focusInput();}
+    $('completionProgress').textContent=`${Math.ceil(step.remaining ?? 0)} s`;
     $('levelCompletion').hidden=!step.active;$('levelCompletion').style.opacity=step.opacity;
     for(const element of $('levelCompletion').children)element.style.visibility=step.showSummary?'visible':'hidden';
     if(!step.active){transition.clear();scenery.enter(clock);}
@@ -658,7 +660,7 @@ document.querySelectorAll('[data-close]').forEach(button=>button.addEventListene
 
 $('rankingButton').addEventListener('click', showRanking);
 for (const id of ['uiLanguage', 'world', 'story', 'writing']) $(id).addEventListener('change', () => {
-  if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); textLanguage=uiLanguage; save('orbita-ui-language', uiLanguage); save('orbita-text-language', textLanguage); }
+  if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); textLanguage=uiLanguage; save('boring-office-ui-language-v2', uiLanguage); save('orbita-text-language', textLanguage); }
 
   if (id === 'world') {
     save('boring-profile-'+world,{mode,progression,difficulty,advanced,story});

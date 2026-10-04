@@ -79,3 +79,19 @@ O escritório é o cenário principal, com dez monólogos originais sobre trabal
 Cada transição tem entrada de 4,5 s, leitura integral por pelo menos 8 s (ajustada a 150 palavras/minuto + 2 s) e saída de 4,5 s. Movimento reduzido elimina os fades, mas conserva a leitura. Próximo nível permite saltar voluntariamente.
 
 Cenários: Escritório usa leitura básica em campanha; Espaço propõe sobrevivência rápida com alvos livres; Terra propõe leitura exata com pontuação. As opções de cada cenário são recuperadas ao alternar.
+
+
+## Atualização visual — 4 outubro 2026
+
+- Protagonista exclusivo visto de trás, com auscultadores, secretária, café e teclado que dispara.
+- Seis alvos originais no escritório: email urgente, papelada, impressora, relógio, folha de cálculo e chefia.
+- Os níveis alternam entre open space, reunião, arquivo, copa, servidores e direção, com arquitetura e paletas diferentes. O ciclo repete-se após seis níveis.
+- Espaço e Terra passam a ter seis silhuetas de inimigos e variação visual por nível.
+- Referências de conceção: [ZType](https://zty.pe/) (escrita e combate), [Going Under](https://store.steampowered.com/app/1154810/Going_Under/) (sátira do escritório). Arte procedural original, sem copiar imagens ou código.
+- Publicar cada etapa jogável em `codex/orbita-evolution`, após testes e inspeção visual. Não implica uma tarefa automática permanente.
+
+
+## Ajustes — 4 outubro 2026
+- Passagem de nível automática após exatamente 8 segundos de resumo totalmente visível, sem precisar de clicar. O contador indica os segundos restantes. Pausar ou sair da página suspende a contagem.
+- Inglês como idioma inicial com uma nova preferência de idioma; as escolhas seguintes ficam guardadas. Textos pré-programados acompanham o idioma, documentos pessoais conservam o original.
+- Esta duração substitui as transições anteriores com fades de 4,5 segundos.

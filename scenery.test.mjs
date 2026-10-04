@@ -1,3 +1,4 @@
+import { drawThreat, officeRoom, drawOfficeRoom } from './office-art.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SceneRenderer, entryProgress, ENTRY_DURATION } from './scenery.mjs';
@@ -66,17 +67,17 @@ test('reduced motion yields identical static backgrounds even as time advances',
   }
 });
 
-test('each fade lasts 4.5 seconds and full-opacity reading gets its own time', () => {
- assert.equal(transitionFrame(.2).phase,'pause');
- assert.equal(transitionFrame(2).phase,'out');
- assert.equal(transitionFrame(4.8).phase,'summary');
- assert.equal(transitionFrame(12.7).opacity,1);
- assert.equal(transitionFrame(14).phase,'in');
- assert.equal(transitionFrame(17.4).phase,'done');
- assert.ok(Math.abs(transitionFrame(0).duration-17.3)<.001);
- const long=transitionFrame(16,{readingWords:60});
- assert.equal(long.phase,'summary');assert.equal(long.opacity,1);
- assert.equal(transitionFrame(14).showSummary,true,'text stays visible throughout fade-out');
+test('level summary stays fully visible for eight seconds then advances automatically', () => {
+ for(const options of [{},{reducedMotion:true},{readingWords:60},{chapter:true}]) {
+  for(const time of [0,.2,4,7.999]) {
+   const frame=transitionFrame(time,options);
+   assert.equal(frame.phase,'summary');assert.equal(frame.opacity,1);
+   assert.equal(frame.readyToAdvance,false);assert.equal(frame.duration,8);
+  }
+  const done=transitionFrame(8,options);
+  assert.equal(done.active,false);assert.equal(done.readyToAdvance,true);
+  assert.equal(done.remaining,0);
+ }
 });
 
 test('transition advances once even with a dropped frame and can be reset', () => {
@@ -96,5 +97,27 @@ test('reduced-motion transitions show summary without a fade or invalid values',
     const state = transitionFrame(time, { reducedMotion: true });
     assert.ok(Number.isFinite(state.opacity)); assert.ok([0, 1].includes(state.opacity));
     assert.ok(!['out', 'in'].includes(state.phase));
+  }
+});
+
+
+test('six office rooms and all threat silhouettes render at mobile and desktop sizes', () => {
+  const rooms = new Set();
+  for (let level=1; level<=6; level++) {
+    rooms.add(officeRoom(level).kind);
+    for (const width of [320, 980]) {
+      const ctx=canvasMock();drawOfficeRoom(ctx,width,420,level,4);ctx.balanced();
+      assert.ok(ctx.calls.length<1000);
+    }
+  }
+  assert.equal(rooms.size,6);
+  assert.equal(officeRoom(7),officeRoom(1));
+  for (const world of ['office','earth','space']) {
+    const signatures=new Set();
+    for (let id=-6;id<6;id++) {
+      const ctx=canvasMock();drawThreat(ctx,{world,id,time:0,active:true,flash:true});ctx.balanced();
+      signatures.add(JSON.stringify(ctx.calls));
+    }
+    assert.ok(signatures.size>=6);
   }
 });

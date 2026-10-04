@@ -1,25 +1,16 @@
 /** Short, clock-driven level transition. No timers: the game can pause safely. */
-export const TRANSITION_TIMING = Object.freeze({ pause: .3, out: 4.5, summary: 8, in: 4.5 });
+export const TRANSITION_TIMING = Object.freeze({ duration: 8 });
 const clamp = (value) => Math.min(1, Math.max(0, value));
-const ease = (value) => value * value * (3 - 2 * value);
 
-export function transitionFrame(elapsed, { chapter = false, reducedMotion = false, readingWords = 0 } = {}) {
+/** Eight seconds of fully visible reading, then an automatic next level. */
+export function transitionFrame(elapsed) {
   const time = Math.max(0, Number(elapsed) || 0);
-  const pause = TRANSITION_TIMING.pause;
-  const out = reducedMotion ? 0 : TRANSITION_TIMING.out;
-  const summary = Math.max(TRANSITION_TIMING.summary, Math.max(0, Number(readingWords) || 0) / 2.5 + 2);
-  const fadeIn = reducedMotion ? 0 : TRANSITION_TIMING.in;
-  const reveal = pause + out, release = reveal + summary, duration = release + fadeIn;
-  let phase = 'pause', opacity = 0;
-  if (time >= duration) phase = 'done';
-  else if (time >= release) { phase = 'in'; opacity = 1 - ease(clamp((time - release) / fadeIn)); }
-  else if (time >= reveal) { phase = 'summary'; opacity = 1; }
-  else if (time >= pause) { phase = 'out'; opacity = ease(clamp((time - pause) / out)); }
+  const duration = TRANSITION_TIMING.duration;
+  const active = time < duration;
   return {
-    phase, opacity, duration, progress: clamp(time / duration),
-    active: phase !== 'done', showSummary: phase !== 'pause' && phase !== 'done',
-    // Switch the level while the screen is covered, once, then fade it in.
-    readyToAdvance: time >= release,
+    phase: active ? 'summary' : 'done', opacity: active ? 1 : 0,
+    duration, remaining: Math.max(0, duration - time), progress: clamp(time / duration),
+    active, showSummary: active, readyToAdvance: !active,
   };
 }
 

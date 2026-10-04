@@ -1,3 +1,4 @@
+import { drawOfficeRoom, drawOfficePlayer } from './office-art.mjs';
 /** Bounded, canvas-only scenery. Times are seconds on the game's paused clock. */
 const TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -26,16 +27,22 @@ export class SceneRenderer {
 
   enter(time) { this.enteredAt = Number.isFinite(time) ? time : 0; }
 
-  drawBackground(ctx, { width, height, time = 0, world = 'space', playing = false, speed = 1, reducedMotion = false }) {
+  drawBackground(ctx, { width, height, time = 0, world = 'space', playing = false, speed = 1, reducedMotion = false, level = 1 }) {
     if (!(width > 0 && height > 0)) return;
     const dt = this.lastTime === null ? 0 : clamp(time - this.lastTime, 0, .08);
     this.lastTime = time;
     if (!reducedMotion) this.travel += dt * (playing ? .55 + clamp(speed, .5, 4) * .45 : .25);
     const motion = reducedMotion ? 0 : this.travel;
     ctx.save();
-    if (world === 'office') this._office(ctx, width, height, reducedMotion ? 0 : time);
+    if (world === 'office') drawOfficeRoom(ctx, width, height, level, reducedMotion ? 0 : time);
     else if (world === 'earth') this._earth(ctx, width, height, motion, reducedMotion ? 0 : time);
     else this._space(ctx, width, height, motion, reducedMotion ? 0 : time, playing, speed);
+    if (world !== 'office') {
+      const chapter = (Math.max(1, level)-1)%6;
+      ctx.fillStyle = ['#536dff08','#b74aff18','#ed985218','#39e5bc18','#d7589418','#2e99ed18'][chapter];
+      ctx.fillRect(0,0,width,height);
+      if (chapter > 0) { ctx.strokeStyle='#c3ddff30';ctx.lineWidth=2;ctx.beginPath();ctx.arc(width*.18,height*.2,25+chapter*12,0,TAU);ctx.stroke(); }
+    }
     this._defenceLine(ctx, width, height, world);
     ctx.restore();
   }
@@ -217,7 +224,7 @@ export class SceneRenderer {
     const motion = reducedMotion ? 0 : time;
     ctx.save(); ctx.translate(position.x, position.y + arrival);
     ctx.globalAlpha = .2 + progress * .8;
-    if (world === 'office') { this.drawClerk(ctx, motion, true); }
+    if (world === 'office') { drawOfficePlayer(ctx, motion, shooting, reducedMotion); }
     else if (world === 'earth') this._tank(ctx, width, motion, playing, shooting, tank, reducedMotion);
     else this._ship(ctx, width, motion, playing, shooting, ship, reducedMotion, progress);
     ctx.restore();
