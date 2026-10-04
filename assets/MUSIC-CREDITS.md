@@ -11,3 +11,12 @@ Downloaded on 2026-10-04 from the original OpenGameArt pages below. Each page of
 CC0 terms: https://creativecommons.org/publicdomain/zero/1.0/ and https://creativecommons.org/publicdomain/zero/1.0/legalcode
 
 Credits are also available inside the game's Audio panel. Original supplied game sound effects and music remain available under the Original soundtrack choice; they are not covered by the additional tracks' CC0 dedication.
+
+## Added 2026-10-04
+
+- **Final Hour — isaiah658**. CC0 1.0, verified on https://opengameart.org/content/final-hour. Original: https://opengameart.org/sites/default/files/Final-Hour-isaiah658_0.mp3. 90-second excerpts, 1-second edge fades, conservative gain, AAC 96 kbps.
+- **Black Diamond — Joth**. CC0 1.0, verified on https://opengameart.org/content/black-diamond. Original: https://opengameart.org/sites/default/files/Black%20Diamond.mp3. 90-second excerpts, 1-second edge fades, conservative gain, AAC 96 kbps.
+- **Singularity (Calm and Action) — Vitalezzz**. CC0 1.0, verified on https://opengameart.org/content/singularity-0. Original: https://opengameart.org/sites/default/files/singularity_action_0.mp3. 90-second excerpts, 1-second edge fades, conservative gain, AAC 96 kbps.
+- **Electronic Outlaw — Zane Little Music**. CC0 1.0, verified on https://opengameart.org/content/electronic-outlaw. Original: https://opengameart.org/sites/default/files/electronic_outlaw.wav. 90-second excerpts, 1-second edge fades, conservative gain, AAC 96 kbps.
+
+Original menu-loop.wav and binary-groove.wav are retained. Automatic selection preserves the original menu, uses relaxed tracks for levels 1–2, electronic tracks for 3–4, and drum and bass / energetic tracks from level 5. User-imported music is private browser data and is never added to this repository.
