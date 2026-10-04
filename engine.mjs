@@ -1,3 +1,4 @@
+import { threatFor, THREATS } from './missions.mjs?v=20261005b';
 /** Normalize typed Portuguese text to the letters used by the game. */
 export function normalizeText(text) {
   return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -34,7 +35,8 @@ const MAX_FRAME_SECONDS = 0.1;
  * Custom words stay in their supplied order and repeat. The renderer fits long tokens.
  */
 export class GameEngine {
-  constructor({ difficulty = 'normal', customText = '', mode = 'arcade', progression = 'campaign', advanced = false, campaignLevels = null, random = Math.random } = {}) {
+  constructor({ difficulty = 'normal', customText = '', mode = 'arcade', progression = 'campaign', advanced = false, campaignLevels = null, random = Math.random, officeTactics = false, sessionSeconds = 0, mobile = false, training = false } = {}) {
+    this.training=Boolean(training);this.officeTactics=Boolean(officeTactics);this.sessionSeconds=Math.max(0,Math.min(3600,Number(sessionSeconds)||0));this.mobile=Boolean(mobile);
     this.advanced = advanced;
     this.mode = mode === 'reading' ? 'reading' : 'arcade';
     this.progression = progression === 'endless' ? 'endless' : 'campaign';
@@ -49,6 +51,7 @@ export class GameEngine {
   }
 
   _reset() {
+    this.pressure=1;this.coffeeUntil=0;
     this.status = 'ready';
     if (this._levels) this._customWords = this._levels[0].words;
     this.enemies = [];
@@ -119,7 +122,11 @@ export class GameEngine {
     return Math.max(0.55, this._settings.spawnInterval / this.speedMultiplier);
   }
 
+  get boss(){const level=this._levels?.[this.level-1];return level?.boss?{id:level.boss,phase:level.phase||1}:null;}
+
   get _maxEnemies() {
+    if(this.boss?.id==='printer')return this.boss.phase===1?1:2;
+    if(this.boss?.id==='meeting')return Math.min(6,2+this.boss.phase);
     return Math.min(6, 3 + Math.floor((this.wave - 1) / 2));
   }
 
@@ -163,7 +170,7 @@ export class GameEngine {
     if (this.mode !== 'reading') return;
     const ordered = [...this.enemies].sort((a, b) => a.id - b.id);
     for (let index = 1; index < ordered.length; index += 1) {
-      ordered[index].y = Math.min(ordered[index].y, ordered[index - 1].y - 0.08);
+      ordered[index].y = Math.min(ordered[index].y, ordered[index - 1].y - (this.officeTactics ? .16 : .08));
     }
   }
 
@@ -187,7 +194,9 @@ export class GameEngine {
     const sequenceIndex = this._customWords.length ? this._customIndex : this.mode === 'reading' ? this._nextId - 1 : -1;
     const word = this._chooseWord();
     const availableLanes = LANES.filter((lane) => !this.enemies.some((enemy) => Math.abs(enemy.x - lane) < 0.06));
-    const lanes = availableLanes.length ? availableLanes : LANES;
+    const allowed = LANES.filter(lane => !this.boss || lane < .7);
+    const free = availableLanes.filter(lane => !this.boss || lane < .7);
+    const lanes = free.length ? free : allowed;
     const x = lanes[Math.floor(this._roll() * lanes.length)];
     const baseLifetime = this._settings.lifetime;
     // Longer practice words receive more time, especially helpful with mobile input.
@@ -197,7 +206,9 @@ export class GameEngine {
     // Position constraints keep reading words ordered without permanently slowing
     // later short words after a long word has been completed.
     const speed = 1 / lifetime;
-    this.enemies.push({ id: this._nextId++, sequenceIndex, word, progress: 0, x, y: 0.025, speed });
+    const archetype=this.officeTactics?threatFor(this._nextId,this.level,word):null;
+    const bossFactor=this.boss?(this.boss.phase===1?.85:this.boss.phase===2?1:1.2):1;
+    this.enemies.push({ id: this._nextId++, sequenceIndex, word, progress: 0, x, y: 0.025, speed:speed*bossFactor*(this.mobile?.85:1),archetype, born:this.elapsed });
     this._keepReadingOrder();
     this._syncReadingTarget();
   }
@@ -206,14 +217,19 @@ export class GameEngine {
     if (this.status !== 'playing' || !Number.isFinite(dtSeconds) || dtSeconds <= 0) return;
     const dt = Math.min(dtSeconds, MAX_FRAME_SECONDS);
     this.elapsed += dt;
-    const pace = this.speedMultiplier;
-    for (const enemy of this.enemies) enemy.y += enemy.speed * pace * dt;
+    if(this.sessionSeconds && this.elapsed>=this.sessionSeconds){this.status='won';this._events.push({type:'victory',timed:true,score:this.score,wpm:this.wpm,accuracy:this.accuracy});return;}
+    const pace = this.speedMultiplier*this.pressure*(this.elapsed < this.coffeeUntil ? .65 : 1);
+    for (const enemy of this.enemies){
+      const factor=enemy.archetype?THREATS[enemy.archetype]?.speed||1:1;
+      enemy.y+=enemy.speed*pace*dt*factor*(enemy.archetype==='deadline'?1+Math.max(0,enemy.y)*.75:1);
+      if(enemy.archetype==='popup')enemy.x=Math.max(.08,Math.min(.92,enemy.x+Math.sin(this.elapsed*1.7+enemy.id)*dt*.025));
+    }
     this._keepReadingOrder();
     const escaped = this.enemies.filter((enemy) => enemy.y >= 1);
     this.enemies = this.enemies.filter((enemy) => enemy.y < 1);
     for (const enemy of escaped) {
       if (this.targetId === enemy.id) this.targetId = null;
-      this.lives -= 1;
+      if (!this.training) this.lives -= 1;
       this.streak = 0;
       if (this.mode === 'reading') this.readingIndex += 1;
       this._events.push({ type: 'damage', enemyId: enemy.id, sequenceIndex: enemy.sequenceIndex, word: enemy.word, x: enemy.x, y: 1, lives: this.lives });
@@ -229,7 +245,7 @@ export class GameEngine {
     this._syncReadingTarget();
     this._spawnCountdown -= dt;
     // Reserve the vertical gap before emitting the next reading word.
-    const readingHasRoom = this.mode !== 'reading' || this.enemies.every((enemy) => enemy.y >= 0.105);
+    const readingHasRoom = this.mode !== 'reading' || this.enemies.every((enemy) => enemy.y >= (this.officeTactics ? .18 : .105));
     if ((this._spawnCountdown <= 0 || (this.mode === 'reading' && this.enemies.length === 0)) && this.enemies.length < this._maxEnemies && readingHasRoom) {
       this._spawnEnemy();
       this._spawnCountdown = this._spawnInterval;
@@ -251,9 +267,9 @@ export class GameEngine {
       if (target) this.targetId = target.id;
     }
     if (!target || target.word.slice(target.progress, target.progress + letter.length) !== letter) {
-      this.mistakes += 1;
+      this.mistakes += 1;if(target)target.hadError=true;
       this.streak = 0;
-      this._events.push({ type: 'miss', enemyId: target?.id ?? null, letter, x: target?.x ?? 0.5, y: target?.y ?? 0.96 });
+      this._events.push({ type: 'miss', enemyId: target?.id ?? null, expected:target?.word.slice(target.progress,target.progress+letter.length)??null,wordId:target?.id??null, letter, x: target?.x ?? 0.5, y: target?.y ?? 0.96 });
       return false;
     }
     target.progress += letter.length;
@@ -261,7 +277,7 @@ export class GameEngine {
     this.streak += 1;
     this.bestStreak = Math.max(this.bestStreak, this.streak);
     this.score += 10 + Math.min(20, Math.floor(this.streak / 10) * 2);
-    this._events.push({ type: 'hit', enemyId: target.id, word: target.word, progress: target.progress, letter, x: target.x, y: target.y });
+    this._events.push({ type: 'hit', enemyId: target.id, word: target.word, archetype:target.archetype, progress: target.progress, letter, x: target.x, y: target.y });
     if (target.progress === target.word.length) {
       this.enemies = this.enemies.filter((enemy) => enemy.id !== target.id);
       this.targetId = null;
@@ -269,7 +285,11 @@ export class GameEngine {
       this.levelKills += 1;
       if (this.mode === 'reading') this.readingIndex += 1;
       this.score += 25 * this.wave;
-      this._events.push({ type: 'destroy', enemyId: target.id, sequenceIndex: target.sequenceIndex, word: target.word, x: target.x, y: target.y });
+      this._events.push({ type: 'destroy', enemyId: target.id, sequenceIndex: target.sequenceIndex, archetype:target.archetype,perfect:!target.hadError,word: target.word, x: target.x, y: target.y });
+      if(this.officeTactics&&this.kills%20===0){this.coffeeUntil=this.elapsed+5;this._events.push({type:'coffee'});}
+      if(this.officeTactics&&target.archetype==='reply'&&this.mode==='arcade'&&!this._levels){
+        for(let i=0;i<2&&this.enemies.length<this._maxEnemies;i++){this._spawnEnemy();this.enemies.at(-1).archetype='email';}
+      }
       if (this._completeDocumentLevel()) return true;
       if (!this._levels && this.levelKills >= this.levelGoal) {
         if (this.progression === 'campaign' && this.level === LEVEL_NAMES.length) {
@@ -312,7 +332,7 @@ export class GameEngine {
   }
 
   snapshot({ retryAfterLoss = false } = {}) {
-    const fields = ['status','targetId','score','lives','wave','levelKills','kills','correct','mistakes','streak','bestStreak','elapsed','readingIndex','_nextId','_customIndex','_spawnCountdown'];
+    const fields = ['status','targetId','score','lives','wave','levelKills','kills','correct','mistakes','streak','bestStreak','elapsed','pressure','coffeeUntil','readingIndex','_nextId','_customIndex','_spawnCountdown'];
     const state = Object.fromEntries(fields.map(key => [key, this[key]]));
     const enemies = this.enemies.map(enemy => ({...enemy}));
     // Continuing a document after losing retries the fatal word, including its
@@ -325,7 +345,7 @@ export class GameEngine {
       for (let i = 1; i < enemies.length; i++) enemies[i].y = Math.min(enemies[i].y, enemies[i - 1].y - .08);
     }
     return { version: 1, options: {difficulty:this.difficulty, customText:this._sourceText, mode:this.mode, progression:this.progression, advanced:this.advanced,
-      campaignLevels:this._levels?.map(({words,...level}) => level) ?? null}, state, enemies };
+      officeTactics:this.officeTactics,sessionSeconds:this.sessionSeconds,mobile:this.mobile,training:this.training,campaignLevels:this._levels?.map(({words,...level}) => level) ?? null}, state, enemies };
   }
 
   static fromSnapshot(snapshot, {random = Math.random} = {}) {
@@ -354,7 +374,8 @@ export class GameEngine {
     } else if (state.status === 'transition') throw new Error('Invalid saved level boundary');
     for (const key of [...integerFields,'elapsed','_spawnCountdown','targetId']) game[key] = state[key];
     if (game._levels) game._customWords = game._levels[game.level - 1].words;
-    game.enemies = snapshot.enemies.map(e => ({...e}));
+    game.pressure=Number.isFinite(state.pressure)?Math.max(.65,Math.min(1.2,state.pressure)):1;game.coffeeUntil=Number.isFinite(state.coffeeUntil)?Math.max(0,state.coffeeUntil):0;
+    game.enemies = snapshot.enemies.map(e => ({...e,archetype:Object.hasOwn(THREATS,e.archetype)?e.archetype:null}));
     game.status = state.status === 'transition' ? 'transition' : 'paused';
     game._events = []; game._syncReadingTarget(); return game;
   }

@@ -1,4 +1,4 @@
-import { drawOfficeRoom, drawOfficePlayer } from './office-art.mjs';
+import { drawOfficeRoom, drawOfficePlayer } from './office-art.mjs?v=20261005b';
 /** Bounded, canvas-only scenery. Times are seconds on the game's paused clock. */
 const TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));

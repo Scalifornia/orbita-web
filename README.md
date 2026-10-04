@@ -5,7 +5,7 @@ Jogo de escrita para computador e telemóvel. Esta evolução está na branch `c
 
 ## Começar
 
-O menu tem **Jogar** e **Opções**. Continuar, documentos e ranking estão nas opções. Em Opções escolhe cenário, conto, idioma do texto, escrita básica/exata, dificuldade e modo. O idioma do jogo atualiza menus e textos pré-programados: português, inglês, francês, alemão e espanhol. Os documentos importados conservam o original. Há duas adaptações próprias de fábulas de Esopo em cada idioma.
+O menu permite **Jogar**, **Treinar**, **Diário** e **Retro**. Em Opções → Escolher missão estão pausas de 2, 5 ou 10 minutos, campanha, infinito, calibração e Boss Rush. O perfil local mostra carreira, precisão, evolução, teclas e conquistas. Inglês é a primeira escolha; português, francês, alemão e espanhol também estão disponíveis. Os textos acompanham o idioma do jogo, com substituição independente opcional. Documentos pessoais conservam o original.
 
 Para testar esta branch localmente, executa `python3 jogar.py` ou `python3 -m http.server 8766 --bind 127.0.0.1` e abre http://127.0.0.1:8766/. Não abras o HTML diretamente. Não é necessário instalar pacotes para jogar.
 
@@ -103,3 +103,22 @@ Cenários: Escritório usa leitura básica em campanha; Espaço propõe sobreviv
 - Três músicas CC0 adicionais: Chills (Holizna), Quirky Jazz (Spring Spring) e Synthwave House Loop (Fupi). Créditos e fontes em assets/MUSIC-CREDITS.md e no painel Áudio.
 - Variedade automática por nível e cenário, escolha de ambiente e Próxima música; banda sonora original disponível. As músicas são carregadas só após um gesto e em função da seleção. Cerca de 2,8 MB adicionais no total, com excertos AAC para controlar memória e dados móveis.
 - Regressões de áudio cobrem troca de música, carregamentos atrasados, pausa, silêncio e recuperação de volume. Seleções de idioma e modo sincronizam os atalhos com as opções.
+
+
+## Edição de missões e carreira — outubro 2026
+
+- **Escritório cinematográfico original:** imagem WebP de 122 KB, chuva, luz variável, colegas discretos e papel no estado de flow. Arte dos alvos e protagonista permanece original. **Retro:** cenário e sprites renderizados em baixa resolução, apresentação de arcade, chiptune original de 16 segundos e filtro CRT opcional.
+- **Jogo real:** seis ameaças com velocidades/comportamentos distintos; Reply All lança dois alvos extra nas partidas de palavras soltas; prazos aceleram; café a cada 20 eliminações abranda os alvos durante 5 segundos. Boss Rush tem Impressora, Reunião e Segunda-feira em três fases cada. A campanha de escritório termina com as três fases da Segunda-feira; documentos importados mantêm o seu fim original.
+- **Sessões:** 2/5/10 minutos usam apenas tempo ativo; treino e calibração não perdem vidas. O desafio diário tem semente UTC, regras fixas e recordes separados por dia/idioma. A pressão adaptativa é desativada no diário; os restantes modos ajustam suavemente a velocidade conforme precisão e latência observadas.
+- **Aprendizagem observada:** WPM correto e bruto, precisão, correções, combo, primeira tecla após o alvo, erros/latência por tecla, confusões e padrões de duas/três letras. Repetição espaçada reintroduz no máximo uma palavra adicional após quatro palavras e só utiliza vocabulário do jogo. Não infere dedos e não promete uma melhoria pedagógica cientificamente validada.
+- **Carreira:** cinco patamares baseados em desempenho sustentado e bosses, sete conquistas e duas paletas desbloqueáveis. O perfil limita o histórico a 60 sessões e cada tabela de sinais a 600 entradas. Guarda somente métricas agregadas; os documentos não são copiados para o perfil.
+- **Resultados:** comparação com a última sessão do mesmo modo e cartão PNG local com pré-visualização e ligação para guardar. Ranking local continua disponível, sem conta nem servidor.
+- **Preferências:** pressão adaptativa, movimento reduzido, contraste, qualidade Auto/Alta/Baixa, CRT e idioma independente. Qualidade Auto reduz partículas em dispositivo de toque ou com movimento reduzido. Espaço/Terra, importação, áudio original, música pessoal, leitura e progresso existentes são preservados.
+
+A arquitetura e as referências de conceção estão em [ARCHITECTURE.md](ARCHITECTURE.md). Proveniência dos recursos em [ATTRIBUTION.md](ATTRIBUTION.md), incluindo a imagem criada pela ferramenta de geração integrada e os créditos CC0 das músicas existentes.
+
+### Verificação desta edição
+
+`node --test *.test.mjs`: 141 testes passam; um teste opcional de importação com navegador externo está explicitamente ignorado. Cobertura inclui campanha/documentos, IME, migração e armazenamento indisponível, treino sem vidas perdidas, diária determinística, conclusão das nove fases dos bosses, várias ameaças, transição de 8 segundos e áudio retro/cooldowns/pausa/silêncio.
+
+Inspeção no navegador: calibração termina aos 60 segundos; perfil reflete as teclas realmente digitadas; documento TXT em português termina com 14/14 palavras mantendo menus em inglês; opções de idioma independente; retro, pausa e retoma; formatos 390×844, 844×390 e 390×430 sem transbordo horizontal e com campo de escrita visível. Dispositivos físicos iPhone/Android, Safari real e audição comparativa por utilizadores continuam por validar. O emulador não constitui prova desses dispositivos.

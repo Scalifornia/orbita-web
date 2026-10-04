@@ -7,7 +7,7 @@
   <meta name="description" content="Boring Office: uma pausa de escrita, sarcasmo e pequenas vitórias contra os absurdos do escritório.">
   <title>Boring Office — Pausa para não responder.</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css?v=20261004h">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css?v=20261005b">
 </head>
 <body>
 <div class="viewport" id="viewport">
@@ -30,7 +30,7 @@
       <label>Modo de jogo<select data-setting="mode"><option value="reading">Texto seguido</option><option value="arcade">Palavras soltas</option></select></label>
       <label>Progressão<select data-setting="progression"><option value="campaign">Campanha</option><option value="endless">Infinito</option></select></label></div>
       <div class="ship-card"><div><span class="eyebrow">A TUA NAVE</span><strong>INTERCEPTOR</strong><small>PROPULSÃO IÓNICA · ONLINE</small></div><img src="./assets/player-ship.png" alt="A tua nave original, com quatro propulsores azuis"></div>
-      <div class="record-card"><span class="eyebrow">O TEU LEGADO EM NÚMEROS <span>↗</span></span><strong id="recordValue">00000</strong><span class="record-caption" id="recordCaption">Neste navegador · modo normal</span></div>
+      <div class="career-card"><button id="profileButton"><span id="careerTitle"></span><small id="careerNext"></small></button><button id="missionsButton">Escolher missão ↗</button></div><div class="record-card"><span class="eyebrow">O TEU LEGADO EM NÚMEROS <span>↗</span></span><strong id="recordValue">00000</strong><span class="record-caption" id="recordCaption">Neste navegador · modo normal</span></div>
       <div class="instructions"><div><span>01</span><p>Escolhe um alvo.<br><b>Escreve a primeira letra.</b></p></div><div><span>02</span><p>Completa a palavra.<br><b>Cada letra dispara.</b></p></div><div><span>03</span><p>Mantém o ritmo.<br><b>Protege as tuas 3 vidas.</b></p></div></div>
       <div class="sidebar-bottom"><span>Departamento de pausas</span></div>
     </aside>
@@ -43,7 +43,7 @@
         <div class="hud-shields"><span class="hud-label">ESCUDO</span><div id="shields" aria-label="3 vidas"><i></i><i></i><i></i></div></div>
         <button id="pauseButton" class="icon-button pause-button" aria-label="Pausar jogo" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
       </div>
-      <div class="level-strip"><span id="levelName">01 / PORTAL NÉON</span><div class="level-track"><span id="levelFill"></span></div><span id="levelCount">0 / 8</span></div>
+      <div class="mission-hud" id="missionHud" hidden><span id="runClock"></span><span id="bossStatus"></span><span id="flowStatus"></span></div><div class="level-strip"><span id="levelName">01 / PORTAL NÉON</span><div class="level-track"><span id="levelFill"></span></div><span id="levelCount">0 / 8</span></div>
 
       <div class="field" id="field">
         <canvas id="gameCanvas" aria-label="Naves inimigas com palavras. Escreve as letras para as destruir."></canvas>
@@ -55,7 +55,7 @@
         <section class="overlay start-panel" id="startPanel" aria-labelledby="startHeading">
           <h2 id="startHeading" class="sr-only" data-no-i18n>Boring Office</h2>
           <label class="start-language"><span aria-hidden="true">◎</span><span>Idioma do jogo</span><select id="menuLanguage" aria-label="Idioma do jogo"></select></label><button id="startButton" class="primary-button">Jogar <span>↗</span></button>
-          <button id="optionsButton" class="custom-button">Opções</button>
+          <div class="start-modes"><button data-run="train">Treinar</button><button data-run="daily">Diário</button><button data-run="retro">Retro</button></div><button id="calibrationNudge" class="calibration-nudge" data-run="calibration">Novo por aqui? Calibra o teu ritmo · 60 s</button><button id="optionsButton" class="custom-button">Opções</button>
         </section>
 
         <section class="overlay pause-panel" id="pausePanel" aria-labelledby="pauseHeading" hidden>
@@ -71,7 +71,7 @@
           <h2 id="resultHeading">A produtividade foi dar uma volta.</h2>
           <strong class="result-score" id="resultScore">0</strong><span class="result-score-label">PONTOS</span>
           <div class="result-stats"><div><strong id="resultWave">1</strong><span>NÍVEL</span></div><div><strong id="resultAccuracy">100%</strong><span>PRECISÃO</span></div><div><strong id="resultWpm">0</strong><span>PAL./MIN</span></div></div>
-          <button id="retryButton" class="primary-button">Mais um turno <span>↗</span></button>
+          <div id="skillResult" data-no-i18n></div><button id="shareResultButton" class="custom-button">Guardar cartão do resultado</button><p id="shareStatus" role="status"></p><button id="retryButton" class="primary-button">Mais um turno <span>↗</span></button>
           <button id="menuButton" class="custom-button">Voltar ao início</button>
         </section>
       </div>
@@ -105,11 +105,13 @@
             <button data-difficulty="hard" aria-pressed="false">Difícil</button>
             <button data-difficulty="extreme" aria-pressed="false">Extremo</button>
           </div>
-<button id="optionsAudioButton" class="custom-button">Áudio</button><button id="rankingButton" class="custom-button">Ranking local ↗</button><button class="primary-button" data-close="optionsDialog">Pronto para jogar</button></dialog>
+<div class="premium-settings"><label>Idioma do texto<select id="gameTextLanguage"><option value="auto">Seguir idioma do jogo</option><option value="pt">Português</option><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="es">Español</option></select></label><label><input id="adaptiveToggle" type="checkbox" checked> Pressão adaptativa</label><label><input id="motionToggle" type="checkbox"> Movimento reduzido</label><label><input id="contrastToggle" type="checkbox"> Alto contraste</label><label><input id="crtToggle" type="checkbox"> CRT · scanlines</label><label>Qualidade<select id="qualitySetting"><option value="auto">Auto</option><option value="high">Alta</option><option value="low">Baixa</option></select></label><label>Paleta<select id="paletteSetting"><option value="classic">Original</option><option value="mint">Menta · 1 nível perfeito</option><option value="sunset">Pôr do sol · 1 chefe derrotado</option></select></label></div><button id="optionsMissionsButton" class="custom-button">Escolher missão ↗</button><button id="optionsProfileButton" class="custom-button">Perfil local</button><button id="optionsAudioButton" class="custom-button">Áudio</button><button id="rankingButton" class="custom-button">Ranking local ↗</button><button class="primary-button" data-close="optionsDialog">Pronto para jogar</button></dialog>
+<dialog id="missionsDialog" aria-labelledby="missionsTitle"><button class="dialog-close icon-button" data-close="missionsDialog" aria-label="Fechar">×</button><div class="eyebrow">O TECLADO É O COMANDO</div><h2 id="missionsTitle">Escolhe a tua pausa.</h2><p>Uma missão de cada vez. Sem reuniões pelo meio.</p><div class="mission-grid"><button data-run="campaign"><strong>Campanha</strong><small>Um dia de trabalho até à Segunda-feira final.</small></button><button data-run="quick"><strong>Pausa rápida</strong><small>2 minutos</small></button><button data-run="coffee"><strong>Pausa para café</strong><small>5 minutos</small></button><button data-run="mission"><strong>Missão</strong><small>10 minutos</small></button><button data-run="endless"><strong>Infinito</strong><small>Sobrevive e bate o teu recorde.</small></button><button data-run="boss"><strong>Chefes</strong><small>Impressora, reunião e Segunda-feira. Três fases cada.</small></button><button data-run="calibration"><strong>Calibração</strong><small>60 segundos para encontrar o teu ritmo.</small></button><button data-run="train"><strong>Treinar</strong><small>Prática personalizada, sem perder vidas.</small></button><button data-run="daily"><strong>Diário</strong><small>A mesma missão UTC para todos, por idioma.</small></button><button data-run="retro"><strong>Retro</strong><small>16 bits. Café ilimitado. 2 minutos.</small></button></div><p>Os documentos e as estatísticas ficam neste dispositivo.</p></dialog>
+<dialog id="profileDialog" aria-labelledby="profileTitle"><button class="dialog-close icon-button" data-close="profileDialog" aria-label="Fechar">×</button><div class="eyebrow">SEM CONTA. SEM REUNIÃO.</div><h2 id="profileTitle">O teu percurso.</h2><div id="profileContent" data-no-i18n></div><p id="profileSaveStatus" role="status"></p><button class="primary-button" data-run="train">Treinar</button></dialog>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
   <button class="dialog-close icon-button" data-close="helpDialog" aria-label="Fechar ajuda">×</button>
   <div class="eyebrow">Regras da pausa</div><h2 id="helpTitle">É só escrever.</h2>
-  <ol><li>Em <b>Texto seguido</b>, acompanha a história e escreve a palavra destacada. Em <b>Palavras soltas</b>, a primeira letra escolhe o alvo mais próximo que começa por essa letra.</li><li>Continua a escrever a palavra para disparar. Uma letra errada quebra a sequência, mas podes continuar com a letra certa.</li><li>Se um alvo passar a linha de defesa, perdes uma vida. Tens três.</li></ol>
+  <p>O teclado é o comando. Escreve a palavra iluminada: cada letra certa dispara. Os espaços são automáticos.</p><p>Emails urgentes têm um selo laranja; prazos vermelhos aceleram; Reply All divide-se em palavras soltas. A cada 20 palavras, o café abranda as ameaças durante 5 segundos.</p><ol><li>Em <b>Texto seguido</b>, acompanha a história e escreve a palavra destacada. Em <b>Palavras soltas</b>, a primeira letra escolhe o alvo mais próximo que começa por essa letra.</li><li>Continua a escrever a palavra para disparar. Uma letra errada quebra a sequência, mas podes continuar com a letra certa.</li><li>Se um alvo passar a linha de defesa, perdes uma vida. Tens três.</li></ol>
   <p>No telemóvel, toca em <b>Jogar</b> para abrir o teu teclado. Se o fechares, toca no campo de escrita. Na escrita básica, os acentos são opcionais. Na avançada, copia também maiúsculas, acentos, pontuação e símbolos.</p>
   <p>Os <b>espaços aparecem automaticamente</b> ao terminar cada palavra.</p>
   <p>Em Texto seguido, a Campanha percorre a história ou o documento completo. Os níveis respeitam capítulos, secções e quebras naturais do texto. A posição exata e as estatísticas ficam guardadas neste navegador.</p>
@@ -141,6 +143,6 @@
 </dialog>
 <dialog id="rankingDialog" aria-labelledby="rankingTitle"><button class="dialog-close icon-button" data-close="rankingDialog" aria-label="Fechar">×</button><h2 id="rankingTitle">Ranking local</h2><p>As 10 melhores partidas nesta configuração, guardadas neste navegador.</p><p id="rankingConfig"></p><ol id="rankingList"></ol><p id="rankingStatus" role="status"></p></dialog>
 <dialog id="readerDialog" aria-labelledby="readerTitle"><header class="reader-header"><div><span class="eyebrow">LEITURA</span><h2 id="readerTitle" data-no-i18n></h2></div><button class="dialog-close icon-button" data-close="readerDialog" aria-label="Fechar">×</button></header><div class="reader-controls"><label for="readerSection">Secção</label><select id="readerSection" data-no-i18n></select><button id="readerSmaller" aria-label="Diminuir texto">A−</button><button id="readerLarger" aria-label="Aumentar texto">A+</button></div><article id="readerContent" tabindex="0" data-no-i18n></article><footer class="reader-footer"><button id="readerPrevious">Anterior</button><span id="readerPosition" data-no-i18n></span><button id="readerNext">Seguinte</button></footer></dialog>
-<script type="module" src="./main.mjs?v=20261004h"></script>
+<script type="module" src="./main.mjs?v=20261005b"></script>
 </body>
 </html>

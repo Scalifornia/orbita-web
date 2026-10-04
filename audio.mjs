@@ -1,3 +1,4 @@
+import {createChiptune} from './chiptune.mjs?v=20261005b';
 const TRACKS = {
   menu: new URL('./assets/menu-loop.wav', import.meta.url),
   game: new URL('./assets/binary-groove.wav', import.meta.url),
@@ -140,6 +141,15 @@ export class GameAudio {
     this._requestMusic();
   }
 
+  setRetro(enabled){this.retro=Boolean(enabled);this._requestMusic();}
+  setGameplayLayers({danger=0,boss=false,combo=0}={}){
+    if(!this.context||this.scene!=='game'||!this.enabled)return;
+    const now=this.context.currentTime;
+    if(danger>.78&&now-(this._lastWarning??-Infinity)>3){this._lastWarning=now;this._tone(185,160,.12,.03,'sine');this._tone(185,160,.12,.03,'sine',.22);}
+    if(boss&&now-(this._lastBossPulse??-Infinity)>4){this._lastBossPulse=now;this._tone(70,52,.28,.025,'triangle');}
+    if(combo>=50&&now-(this._lastFlowPulse??-Infinity)>2){this._lastFlowPulse=now;this._tone(660,665,.14,.025,'sine');}
+  }
+
   async setCustomMusic(file) {
     if (!this.context || !file) throw new Error('Audio unavailable');
     const request = (this._customRequest || 0) + 1;
@@ -163,6 +173,7 @@ export class GameAudio {
 
   currentTrack() {
     if (this.musicStyle === 'custom' && this.customTrack) return this.customTrack;
+    if(this.retro&&this.scene==='game'&&this.musicStyle==='auto'&&this.context){if(!this._buffers.has('retro:original'))this._buffers.set('retro:original',Promise.resolve(createChiptune(this.context)));return {key:'retro:original',url:'retro:original',title:'Insert Coffee · Boring Office Original'};}
     if (this.scene !== 'game' || this.musicStyle === 'original') return {url:TRACKS[this.scene],key:this.scene,title:this.scene==='game'?'Binary Groove':'Original · Menu'};
     let id = this.musicStyle;
     if (id === 'auto' || id === 'custom') {
@@ -381,7 +392,7 @@ export class GameAudio {
       if (this._shotBuffer) {
         const source = this.context.createBufferSource();
         const gain = this.context.createGain();
-        source.buffer = this._shotBuffer; gain.gain.value = 0.43;
+        source.buffer = this._shotBuffer; if(source.playbackRate)source.playbackRate.value=.96+((Math.floor(now*1000)%7)/100);gain.gain.value = 0.43;
         source.connect(gain); gain.connect(this._sfxBus);
         this._register(source, gain); source.start(now);
       } else this._tone(880, 180, 0.11, 0.19, 'triangle');

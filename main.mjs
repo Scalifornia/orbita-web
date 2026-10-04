@@ -1,18 +1,22 @@
-import { drawThreat } from './office-art.mjs';
-import { GameEngine, normalizeText, wordsFromText } from './engine.mjs';
+import {loadProfile,saveProfile,SkillSession,practiceWords,unlockAchievements,career} from './skill-model.mjs?v=20261005b';
+import {RUNS,OFFICE_WORDS,dailyChallenge,bossLevels,shareResult,THREATS,BOSSES} from './missions.mjs?v=20261005b';
+import {PremiumArt,dangerLevel}from './premium-art.mjs?v=20261005b';
+import {renderProfile,renderRunResult,downloadResult}from './premium-ui.mjs?v=20261005b';
+import { drawThreat } from './office-art.mjs?v=20261005b';
+import { GameEngine, normalizeText, wordsFromText } from './engine.mjs?v=20261005b';
 import { TypingInput } from './input.mjs';
 import { stories } from './stories.mjs';
-import { setupMenu } from './interface.mjs?v=20261004h';
-import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs?v=20261004h';
-import { Adventure } from './adventure.mjs';
-import { setupReader } from './reader.mjs?v=20261004h';
+import { setupMenu } from './interface.mjs?v=20261005b';
+import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs?v=20261005b';
+import { Adventure } from './adventure.mjs?v=20261005b';
+import { setupReader } from './reader.mjs?v=20261005b';
 import { createCampaign } from './campaign.mjs';
-import { setupLibrary } from './library.mjs?v=20261004h';
+import { setupLibrary } from './library.mjs?v=20261005b';
 import { documentFromText } from './documentImport.mjs';
-import { SceneRenderer } from './scenery.mjs';
-import { LevelTransition } from './transitions.mjs?v=20261004h';
+import { SceneRenderer } from './scenery.mjs?v=20261005b';
+import { LevelTransition } from './transitions.mjs?v=20261005b';
 import { loadMusicFile, saveMusicFile } from './music-store.mjs';
-import { GameAudio } from './audio.mjs?v=20261004h';
+import { GameAudio } from './audio.mjs?v=20261005b';
 import { WORLD_PRESETS } from './worlds.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -20,7 +24,7 @@ const canvas = $('gameCanvas');
 const ctx = canvas.getContext('2d');
 const field = $('field');
 const input = $('typingInput');
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let reducedMotion = readSaved('boring-reduced-motion',false) || matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coarsePointer = matchMedia('(pointer: coarse)').matches;
 
 const modeNames = { reading: 'texto seguido', arcade: 'palavras soltas' };
@@ -42,7 +46,8 @@ let customText = readSaved('orbita-text', '');
 if (typeof customText !== 'string') customText = '';
 let uiLanguage = readSaved('boring-office-ui-language-v2', 'en');
 if (!Object.hasOwn(supportedLanguages,uiLanguage)) uiLanguage='en';
-let textLanguage = uiLanguage;
+let textOverride=readSaved('boring-text-override','auto');if(textOverride!=='auto'&&!Object.hasOwn(supportedLanguages,textOverride))textOverride='auto';
+let textLanguage = textOverride==='auto'?uiLanguage:textOverride;
 if (!Object.hasOwn(supportedLanguages,textLanguage)) textLanguage='en';
 let world = readSaved('orbita-world-v2', 'office');
 if (!['office','earth','space'].includes(world)) world='office';
@@ -60,6 +65,14 @@ let menuUI = null;
 const adventure = new Adventure();
 const reader = setupReader();
 const scenery = new SceneRenderer();
+const premiumArt=new PremiumArt();
+const profileStorage=(()=>{try{return localStorage;}catch{return null;}})();
+let profile=loadProfile(profileStorage),skill=null,activeSeconds=0,runKind='campaign',runIdentity=null,lastResult=null,sessionFinished=false;
+let adaptiveOn=readSaved('boring-adaptive',true),quality=readSaved('boring-quality','auto'),palette=readSaved('boring-palette','classic');
+let targetOfferedAt=0,lastOfferedId=null;
+let menuConfig=null;
+let impactUntil=0,levelStartMistakes=0,nearMissUntil=0,previousSkillHud=-1;
+
 const transition = new LevelTransition();
 let transitionPaused = false, saveTimer = null;
 let game = new GameEngine();
@@ -77,8 +90,9 @@ playerShip.src = './assets/player-ship.png';
 const tank = new Image(); tank.src = './assets/tank-player.png';
 
 const earthLevels = ['Vale verde', 'Trilho do bosque', 'Ponte antiga', 'Colina dourada', 'Rio tranquilo', 'Montanha azul', 'Floresta profunda', 'Caminho de pedra', 'Horizonte verde', 'Regresso a casa'];
-function levelTitle(level) { return adventure.campaign ? game.levelTitle : t(world === 'earth' ? earthLevels[(level - 1) % 10] : game.levelTitle); }
+function levelTitle(level) { return game.boss?t(BOSSES[game.boss.id].name):adventure.campaign ? game.levelTitle : t(world === 'office' ? 'RECURSOS DESUMANOS' : world === 'earth' ? earthLevels[(level - 1) % 10] : game.levelTitle); }
 function recordKey() {
+  if(!['campaign','endless'].includes(runKind))return `boring-best-${runKind}-${runIdentity?.day||''}-${textLanguage}-${advanced}-${runKind==='daily'?'fixed':`${difficulty}-${world}-${customText?textHash(customText):'default'}`}`;
   return `orbita-v3-best-${difficulty}-${mode}-${progression}-${world}-${textLanguage}-${advanced}-${adventure.campaign ? adventure.campaign.id : customText ? 'custom-' + textHash(customText) : story}`;
 }
 function textHash(value) { let hash = 2166136261; for (const char of value) hash = Math.imul(hash ^ char.codePointAt(0), 16777619); return (hash >>> 0).toString(16); }
@@ -181,7 +195,7 @@ function point(enemy) {
   const travel = Math.max(36, height - top - 100);
   return { x, y: top + enemy.y * travel, fontSize, half };
 }
-function shipPosition() { return { x: width / 2, y: height - (width < 480 ? 34 : 43) }; }
+function shipPosition() { return { x: width / 2, y: height - (width < 480 ? 44 : 43) }; }
 
 function updateTypedEcho() {
   const echo = $('typedEcho');
@@ -199,7 +213,11 @@ const typing = new TypingInput(input, (text) => {
   for (const char of (advanced ? text.normalize('NFC') : normalizeText(text))) {
     if (advanced ? !/^\S$/u.test(char) : !/^[\p{L}]$/u.test(char)) continue;
     snapshot();
-    if (game.typeChar(char)) typedDisplay += char;
+    const before=game.enemies.find(e=>e.id===game.targetId)||game.enemies.filter(e=>e.word.slice(e.progress,e.progress+char.length)===char).sort((a,b)=>b.y-a.y||a.id-b.id)[0];
+    const expected=before?.word.slice(before.progress,before.progress+char.length)||null;
+    const correct=game.typeChar(char);
+    skill?.record({typed:char,expected,correct,time:clock*1000,wordId:before?.id,reaction:correct&&before?.progress===char.length?Math.max(0,mode==='reading'?(clock-targetOfferedAt)*1000:(game.elapsed-before.born)*1000):null});
+    if(correct)typedDisplay+=char;
     handleEvents();
   }
   if (typedDisplay.length > 240) typedDisplay = typedDisplay.slice(typedDisplay.indexOf(' ', typedDisplay.length - 220) + 1);
@@ -214,7 +232,7 @@ function focusInput() {
   input.focus({ preventScroll: true });
   input.setSelectionRange(input.value.length, input.value.length);
 }
-function settings() { return {difficulty,mode,progression,advanced,world,textLanguage,story}; }
+function settings() { return {difficulty,mode,progression,advanced,world,textLanguage,story,officeTactics:world==='office',mobile:coarsePointer}; }
 function saveProgress() {
   clearTimeout(saveTimer); saveTimer=null;
   if (!adventure.campaign) return;
@@ -223,11 +241,13 @@ function saveProgress() {
 }
 function queueSave() { if (adventure.campaign && !saveTimer) saveTimer=setTimeout(saveProgress,250); }
 function setReadingSource() {
-  const source=adventure.campaign?.levels[game.level-1]?.text || customText || stories[story][textLanguage].text;
+  const source=adventure.campaign?.levels[game.level-1]?.text || game._levels?.[game.level-1]?.text || game._sourceText || customText || stories[story][textLanguage].text;
   textTokens=advanced ? wordsFromText(source,true) : (source.normalize('NFC').match(/\p{L}+[\p{M}]*(?:[^\p{L}\p{N}]*|$)/gu)||[]);
   lastReadingKey='';
 }
 function activateGame(restoredText='') {
+  skill=new SkillSession({profile,mode:runKind});activeSeconds=0;sessionFinished=false;levelStartMistakes=game.mistakes;previousSkillHud=-1;
+  sound.setRetro(runKind==='retro');document.body.classList.toggle('retro',runKind==='retro');
   transition.clear(); transitionPaused=false;
   projectiles=[];particles=[];rings=[];ghosts.clear();snapshots.clear();flashes.clear();
   lastHudKey='';lastReadingKey='';damageFlash=0;
@@ -243,19 +263,24 @@ function activateGame(restoredText='') {
   input.placeholder=t(mode==='reading'?'Escreve a palavra destacada…':'Escreve uma palavra para disparar…');
   handleEvents();updateHud();updateTypedEcho();translatePage();
 }
-function beginDocument(document) {
+function beginDocument(document,officeFinal=false) {
+  runKind='campaign';runIdentity=null;
   mode='reading';progression='campaign';
-  game=adventure.begin(document,settings());updateMenu();activateGame();saveProgress();
+  game=adventure.begin(document,settings());
+  if(officeFinal){const extra=bossLevels(textLanguage,advanced).filter(l=>l.boss==='monday');let offset=adventure.campaign.totalWords;const chapter=Math.max(...adventure.campaign.levels.map(l=>l.chapterIndex))+1;for(const l of extra){l.startWord=offset;offset+=l.wordCount;l.endWord=offset;l.chapterIndex=chapter;}adventure.campaign.levels.push(...extra);adventure.campaign.totalWords=offset;game=new GameEngine({...settings(),mode:'reading',campaignLevels:adventure.campaign.levels}).start();}
+  updateMenu();activateGame();saveProgress();
 }
 function startGame() {
-  textLanguage=uiLanguage;
+  textLanguage=textOverride==='auto'?uiLanguage:textOverride;
+  runKind='campaign';runIdentity=null;
   const source=customText || stories[story][textLanguage].text;
   if(mode==='reading' && progression==='campaign') {
-    beginDocument(documentFromText(source,customText?t('Texto personalizado'):stories[story][textLanguage].title));return;
+    beginDocument(documentFromText(source,customText?t('Texto personalizado'):stories[story][textLanguage].title),!customText&&world==='office'&&story==='office');return;
   }
-  adventure.detach();game=new GameEngine({difficulty,mode,progression,advanced,customText:source}).start();activateGame();
+  adventure.detach();runKind=progression==='endless'?'endless':'campaign';game=new GameEngine({...settings(),customText:source}).start();activateGame();
 }
 function continueGame() {
+  runKind='campaign';runIdentity=null;
   $('optionsDialog').close();
   const saved=adventure.resume();if(!saved)return;
   ({difficulty,world,textLanguage,story,advanced}=saved.settings);mode='reading';progression='campaign';
@@ -277,6 +302,7 @@ function resume() {
   focusInput();unlockAudio();sound.setScene('game');
 }
 function menu() {
+  finishSkill(false);document.body.classList.remove('retro');sound.setRetro(false);if(menuConfig){({difficulty,mode,progression,advanced,world,story}=menuConfig);menuConfig=null;}
   saveProgress();adventure.detach();transition.clear();transitionPaused=false;
   game=new GameEngine();sound.setScene('menu');
   glyphFragments=[];destroyedLetters.clear();typedDisplay='';pendingFinish=null;
@@ -290,11 +316,11 @@ function menu() {
   $('startButton').focus({preventScroll:true});
 }
 function beginTransition() {
-  const level=adventure.campaign?.levels[game.level-1];if(!level)return;
+  const level=adventure.campaign?.levels[game.level-1]||game._levels?.[game.level-1];if(!level)return;
   $('completionTag').textContent=t('Pausa merecida. Sem pedir autorização.');
-  $('completionTitle').textContent=level.title;
+  $('completionTitle').textContent=game.boss?t(level.title):level.title;
   $('completionStats').textContent=`${game.score} ${t('pontos')} · ${Math.round(game.accuracy)}% · ${Math.round(game.wpm)} ${t('pal./min')}`;
-  const percent=Math.round(adventure.percent(game));
+  const percent=Math.round(adventure.campaign?adventure.percent(game):100*game.level/(game._levels?.length||1));
   $('completionFill').style.width=`${percent}%`;$('completionProgress').textContent=`${percent}%`;
   $('completionText').textContent=level.text;
   transition.start(clock,{}, {chapter:level.isChapterEnd,reducedMotion,readingWords:level.wordCount});saveProgress();
@@ -306,6 +332,7 @@ function advanceLevel() {
 }
 
 function finish() {
+  finishSkill(game.status==='won');
   const rows = [...rankingRows(), { score: game.score, accuracy: game.accuracy, wpm: game.wpm, date: new Date().toISOString() }].sort((a, b) => b.score - a.score || b.accuracy - a.accuracy).slice(0, 10);
   const rankingSaved = save(rankingKey(), rows);
   input.blur(); input.disabled = true;
@@ -322,6 +349,9 @@ function finish() {
   $('resultWave').textContent = game.wave;
   $('resultAccuracy').textContent = `${Math.round(game.accuracy)}%`;
   $('resultWpm').textContent = Math.round(game.wpm);
+  if(runKind==='boss'&&victory)$('resultTag').textContent=t('HOJE NÃO, SEGUNDA-FEIRA');
+  if(game.sessionSeconds&&victory)$('resultTag').textContent=t('Pausa concluída. O trabalho pode esperar.');
+  $('resultPanel').classList.toggle('personal-best',isBest);
   $('resultPanel').hidden = false;
   if (!rankingSaved) $('resultTag').textContent = t('Não foi possível guardar o ranking neste navegador.');
   $('retryButton').focus({ preventScroll: true });
@@ -337,8 +367,10 @@ function handleEvents() {
       tone('shot');
       if(game.streak>0 && game.streak%20===0) { sound.effect('combo',Math.min(5,game.streak/20));$('combo').classList.remove('combo-pop');void $('combo').offsetWidth;$('combo').classList.add('combo-pop'); }
     } else if (event.type === 'destroy') {
+      impactUntil=clock+(game.boss?.phase===3?.3:.12);
       typedDisplay += ' ';
       const enemy = snapshots.get(event.enemyId);
+      if(enemy?.y>.78){nearMissUntil=clock+1.2;}
       if (enemy) ghosts.set(event.enemyId, { ...enemy, progress: enemy.word.length });
       const shot = projectiles.findLast((item) => item.enemyId === event.enemyId);
       if (shot) shot.finish = true;
@@ -351,13 +383,17 @@ function handleEvents() {
       burst(position.x, Math.min(height - 35, position.y), true, '#ff845e');
       damageFlash = 0.28; tone('damage');
     } else if (event.type === 'levelComplete') {
-      beginTransition();
+      noteLevel();beginTransition();
+    } else if (event.type === 'coffee') {
+      $('waveToast').textContent=t('CAFÉ: 5 SEGUNDOS DE PAZ.');$('waveToast').classList.add('visible');toastUntil=clock+2;tone('combo');
     } else if (event.type === 'wave') {
+      levelStartMistakes=game.mistakes;
       scenery.enter(clock);
       $('waveToast').textContent = `NÍVEL ${String(event.level).padStart(2, '0')} · ${levelTitle(event.level).toUpperCase()}`;
       $('waveToast').classList.add('visible'); toastUntil = clock + 2.4;
-      if (event.level > 1) tone('level');
+      if(game.boss){$('waveToast').textContent=t(BOSSES[game.boss.id].name)+' · '+t('Fase')+' '+game.boss.phase;tone('level');}else if (event.level > 1) tone('level');
     } else if (event.type === 'over' || event.type === 'victory') {
+      if(event.type==='victory'&&!event.timed)noteLevel();
       input.disabled = true; $('pauseButton').disabled = true;
       pendingFinish = clock + 0.65;
     }
@@ -394,6 +430,7 @@ function updateReading() {
 }
 function updateHud() {
   const target = game.enemies.find((enemy) => enemy.id === game.targetId);
+  if(target?.id!==lastOfferedId){lastOfferedId=target?.id;targetOfferedAt=clock;}
   const key = `${game.score}:${game.wave}:${game.lives}:${game.mistakes}:${game.streak}:${target?.id}:${target?.progress}:${game.status}:${game.speedPercent}`;
   if (key === lastHudKey) return;
   lastHudKey = key;
@@ -416,11 +453,12 @@ function updateHud() {
 }
 
 function burst(x, y, big = false, color = '#58f3ff') {
-  const count = reducedMotion ? 5 : big ? 38 : 12;
+  const count = reducedMotion||lowQuality() ? 5 : big ? 38 : 12;
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2;
     const speed = (big ? 45 : 20) + Math.random() * (big ? 130 : 55);
     const life = big ? 0.35 + Math.random() * 0.35 : 0.15 + Math.random() * 0.2;
+    if(particles.length>=180)particles.shift();
     particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life, max: life, color, size: big ? 1 + Math.random() * 2 : 1 });
   }
   if (big) rings.push({ x, y, age: 0, color });
@@ -447,7 +485,7 @@ function explodeLetter(enemy, index, position) {
       age: 0, piece, rotation: 0, spin: (Math.random() - .5) * 5,
       fontSize: position.fontSize, letterWidth: position.letterWidth });
   }
-  glyphFragments = glyphFragments.slice(-150);
+  glyphFragments = glyphFragments.slice(lowQuality()?-30:-120);
 }
 function updateEffects(dt) {
   for (const ghost of ghosts.values()) ghost.y += ghost.speed * game.speedMultiplier * dt;
@@ -498,8 +536,10 @@ function drawBackground(time) {
   if($('musicNow').textContent!==musicTitle)$('musicNow').textContent=musicTitle;
 
   scenery.drawBackground(ctx,{width,height,time,world,level:game.level,playing:game.status==='playing',speed:game.speedMultiplier,reducedMotion});
+  if(world==='office'||runKind==='retro')premiumArt.draw(ctx,{width,height,time,level:game.level,retro:runKind==='retro',reducedMotion,combo:game.streak,boss:game.boss});
 }
 function drawShip(time) {
+  if(runKind==='retro'){premiumArt.drawRetroPlayer(ctx,{...shipPosition(),time:reducedMotion?0:time,shooting:(flashes.get('ship')||0)>clock,reducedMotion});return;}
   scenery.drawPlayer(ctx,{width,height,time,world,playing:game.status==='playing',reducedMotion,position:shipPosition(),shooting:(flashes.get('ship')||0)>clock,ship:playerShip,tank});
 }
 function drawEnemy(enemy, demo = false) {
@@ -512,8 +552,9 @@ function drawEnemy(enemy, demo = false) {
   ctx.fillStyle = active ? '#5b263e' : '#252b58'; ctx.strokeStyle = neon; ctx.lineWidth = 1;
   ctx.shadowColor = neon; ctx.shadowBlur = reducedMotion ? 0 : active ? 12 : 6;
   if (flash) ctx.fillStyle = '#bcffeb';
-  drawThreat(ctx,{world,id:enemy.id,time:reducedMotion?0:clock,active,flash}); ctx.shadowBlur = 0;
+  const art={world,id:enemy.archetype?THREATS[enemy.archetype]?.art??enemy.id:enemy.id,time:reducedMotion?0:clock,active,flash};if(runKind==='retro')premiumArt.drawRetroThreat(ctx,art);else drawThreat(ctx,art);ctx.shadowBlur=0;
   ctx.fillStyle = active ? '#bbff4b' : '#64deff'; ctx.fillRect(-2, -2, 4, 4);
+  if(enemy.archetype==='urgent'||enemy.archetype==='deadline'){ctx.fillStyle=THREATS[enemy.archetype].color;ctx.font='bold 12px monospace';ctx.fillText(enemy.archetype==='urgent'?'!':'⌛',22,-20);}
   const textY = 32;
   ctx.font = `500 ${fontSize}px "Space Grotesk", monospace`;
   const textWidth = ctx.measureText(enemy.word).width;
@@ -528,6 +569,7 @@ function drawEnemy(enemy, demo = false) {
       ctx.fillStyle = '#69d7d038'; ctx.fillRect(left, textY + 2, Math.max(3, ctx.measureText(glyph).width - 2), 1);
     } else {
       ctx.fillStyle = index < enemy.progress ? '#baff62' : '#f4f2ff';
+      if(active&&index===enemy.progress){ctx.fillStyle='#87ede1';ctx.fillRect(left,textY+4,Math.max(4,ctx.measureText(glyph).width-1),2);ctx.fillStyle='#fff';}
       ctx.fillText(glyph, left, textY);
     }
     index += glyph.length;
@@ -566,14 +608,14 @@ function drawEffects() {
     ctx.beginPath(); ctx.arc(ring.x, ring.y, 3 + ring.age * (ring.small ? 38 : 110), 0, Math.PI * 2); ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  if (damageFlash) { ctx.fillStyle = `rgba(255,105,69,${damageFlash * .35})`; ctx.fillRect(0, 0, width, height); }
+  if (damageFlash && !reducedMotion) { ctx.fillStyle = `rgba(255,105,69,${damageFlash * .35})`; ctx.fillRect(0, 0, width, height); }
 }
 function frame(timestamp) {
   const dt = Math.min((timestamp - (lastTime || timestamp)) / 1000, 0.05);
   lastTime = timestamp;
   const frozen = game.status === 'paused' || transitionPaused || document.hidden;
   if (!frozen) clock += dt;
-  snapshot();if(!frozen && transition.startedAt===null)game.tick(dt);handleEvents();
+  snapshot();if(!frozen && transition.startedAt===null){if(game.status==='playing'){activeSeconds+=dt;if(skill)game.pressure=skill.pressure(game.pressure,dt,{fixed:runKind==='daily'||!adaptiveOn,mobile:coarsePointer});}game.tick(dt);}handleEvents();
   if(!frozen && transition.startedAt!==null) {
     const step=transition.sample(clock);if(step.advance){advanceLevel();focusInput();}
     $('completionProgress').textContent=`${Math.ceil(step.remaining ?? 0)} s`;
@@ -585,14 +627,20 @@ function frame(timestamp) {
   if (pendingFinish !== null && clock >= pendingFinish) { pendingFinish = null; finish(); }
   updateHud(); drawBackground(reducedMotion ? 0 : clock);
   if (game.status === 'ready') {
-    drawEnemy({ id: -1, word: world === 'office' ? stories.office[textLanguage].text.split(/\s+/u)[0] : previewWords[textLanguage][world], progress: 0, x: .16, y: .18 + Math.sin(clock * .2) * .025 }, true);
-    drawEnemy({ id: -2, word: previewWords[textLanguage].discover, progress: 0, x: .85, y: .49 + Math.sin(clock * .25) * .025 }, true);
+    drawEnemy({ id: -1, word: world === 'office' ? stories.office[textLanguage].text.split(/\s+/u)[0] : previewWords[textLanguage][world], progress: 0, x: .16, y: .18 + Math.sin((reducedMotion?0:clock) * .2) * .025 }, true);
+    drawEnemy({ id: -2, word: previewWords[textLanguage].discover, progress: 0, x: .85, y: .49 + Math.sin((reducedMotion?0:clock) * .25) * .025 }, true);
     drawEnemy({ id: -3, word: previewWords[textLanguage].horizon, progress: 0, x: .19, y: .79 }, true);
   } else {
+    ctx.save();if(!reducedMotion&&!lowQuality()&&impactUntil>clock)ctx.translate(Math.sin(clock*65)*1.5,Math.cos(clock*51)*1);
     for (const enemy of game.enemies) drawEnemy(enemy);
     for (const ghost of ghosts.values()) drawEnemy(ghost);
+    ctx.restore();
   }
   drawShip(clock); drawEffects();
+  updateMissionHud();
+  const danger=dangerLevel(game.enemies);sound.setGameplayLayers({danger,boss:Boolean(game.boss),combo:game.streak});
+  if(danger>.78){ctx.strokeStyle='#ffbd87';ctx.lineWidth=3;ctx.strokeRect(3,3,width-6,height-6);ctx.fillStyle='#ffcf96';ctx.font='bold 11px monospace';ctx.textAlign='right';ctx.fillText('! '+t('PRAZO A CHEGAR'),width-12,height-12);}
+  if(nearMissUntil>clock){ctx.fillStyle='#abebd0';ctx.font='bold 12px monospace';ctx.textAlign='center';ctx.fillText(t('MESMO A TEMPO.'),width/2,height-75);}
   // Bound snapshots after missed enemies while retaining in-flight targets.
   const retained = new Set([...game.enemies.map((enemy) => enemy.id), ...ghosts.keys(), ...projectiles.map((shot) => shot.enemyId)]);
   for (const id of snapshots.keys()) if (!retained.has(id)) snapshots.delete(id);
@@ -601,7 +649,7 @@ function frame(timestamp) {
 }
 
 $('startButton').addEventListener('click', startGame);
-$('retryButton').addEventListener('click', () => adventure.record ? continueGame() : startGame());
+$('retryButton').addEventListener('click', () => runKind!=='campaign'?launchRun(runKind):adventure.record ? continueGame() : startGame());
 $('continueButton').addEventListener('click',continueGame);
 $('nextLevelButton').addEventListener('click',()=>{if(game.status!=='transition'||transitionPaused)return;advanceLevel();transition.clear();$('levelCompletion').hidden=true;scenery.enter(clock);focusInput();});
 $('pauseButton').addEventListener('click', () => pause());
@@ -703,7 +751,7 @@ document.addEventListener('pointerdown', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
 $('helpButton').addEventListener('click', () => { pause(); $('helpDialog').showModal(); });
 const library=setupLibrary({getLanguage:()=>textLanguage,onStart:beginDocument,onRead:campaign=>reader.open(campaign),onDefault:()=>{customText='';save('orbita-text','');updateMenu();}});
-$('readBookButton').addEventListener('click',()=>{pause();reader.open(adventure.campaign || createCampaign(documentFromText(customText || stories[story][textLanguage].text,customText?t('Texto personalizado'):stories[story][textLanguage].title)),Math.max(0,adventure.campaign?game.level-1:0));});
+$('readBookButton').addEventListener('click',()=>{pause();reader.open(adventure.campaign || createCampaign(documentFromText(game._sourceText || customText || stories[story][textLanguage].text,runKind==='boss'?'BOSS RUSH':customText?t('Texto personalizado'):stories[story][textLanguage].title)),Math.max(0,adventure.campaign?game.level-1:0));});
 $('testExplosionButton').addEventListener('click',async()=>{soundOn=true;save('orbita-sound',true);sound.setEnabled(true);if(sfxVolume===0){sfxVolume=.5;sound.setSfxVolume(.5);save('orbita-sfx-volume',.5);$('sfxVolume').value=50;$('sfxVolumeLabel').textContent='50%';}await sound.unlock();sound.previewExplosion();updateSoundButton();translatePage();});
 for(const button of document.querySelectorAll('[data-world]'))button.addEventListener('click',()=>{pause();$('world').value=button.dataset.world;$('world').dispatchEvent(new Event('change'));});
 document.querySelectorAll('[data-writing]').forEach(button=>button.addEventListener('click',()=>{pause();$('writing').value=button.dataset.writing;$('writing').dispatchEvent(new Event('change'));}));
@@ -714,7 +762,7 @@ document.querySelectorAll('[data-close]').forEach(button=>button.addEventListene
 
 $('rankingButton').addEventListener('click', showRanking);
 for (const id of ['uiLanguage', 'world', 'story', 'writing']) $(id).addEventListener('change', () => {
-  if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); textLanguage=uiLanguage; save('boring-office-ui-language-v2', uiLanguage); save('orbita-text-language', textLanguage); }
+  if (id === 'uiLanguage') { pause(); uiLanguage = $(id).value; setLanguage(uiLanguage); textLanguage=textOverride==='auto'?uiLanguage:textOverride; save('boring-office-ui-language-v2', uiLanguage); save('orbita-text-language', textLanguage); }
 
   if (id === 'world') {
     save('boring-profile-'+world,{mode,progression,difficulty,advanced,story});
@@ -732,6 +780,58 @@ for (const id of ['uiLanguage', 'world', 'story', 'writing']) $(id).addEventList
 for (const id of ['uiLanguage']) {
   $(id).replaceChildren(...Object.entries(supportedLanguages).map(([value,label]) => { const option=document.createElement('option');option.value=value;option.textContent=label;return option; }));
 }
+function noteLevel(){
+  if(game.mistakes===levelStartMistakes&&game.levelKills>0)profile.perfectLevels++;
+  if(game.boss?.phase===3&&skill&&!skill.bosses.includes(game.boss.id))skill.bosses.push(game.boss.id);
+  saveProfile(profile,profileStorage);
+}
+function finishSkill(won){
+ if(!skill||sessionFinished||skill.attempts<1)return;
+ sessionFinished=true;lastResult=skill.finish({seconds:activeSeconds,score:game.score,combo:game.bestStreak,won});
+ const earned=unlockAchievements(profile);const stored=saveProfile(profile,profileStorage);
+ $('profileSaveStatus').textContent=stored?'':t('Não foi possível guardar o progresso.');
+ renderRunResult(lastResult,profile,earned);renderProfile(profile);applyPalette();$('calibrationNudge').hidden=profile.calibrated;
+}
+function launchRun(kind){
+ if(!RUNS[kind])return;
+ finishSkill(false);for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();
+ if(kind==='campaign'){menuConfig=null;world='office';story='office';mode='reading';progression='campaign';startGame();return;}
+ if(!menuConfig)menuConfig={difficulty,mode,progression,advanced,world,story};
+ runKind=kind;runIdentity=null;adventure.detach();
+ textLanguage=textOverride==='auto'?uiLanguage:textOverride;
+ if(['train','calibration','boss','daily','retro'].includes(kind))world='office';
+ let words=(OFFICE_WORDS[textLanguage]||OFFICE_WORDS.en).split(' '),random=Math.random;
+ if(kind==='daily'){const challenge=dailyChallenge(new Date(),textLanguage);runIdentity=challenge;words=challenge.words;random=challenge.random;difficulty=challenge.difficulty;advanced=false;}
+ if(kind==='train')words=practiceWords(words,profile);
+ const text=customText&&!['daily','train','calibration','boss'].includes(kind)?customText:words.join(' ');
+ mode=['train','calibration','boss'].includes(kind)?'reading':'arcade';if(kind==='calibration')advanced=false;progression='endless';
+ game=new GameEngine({...settings(),mobile:kind==='daily'?false:coarsePointer,training:['train','calibration'].includes(kind),mode,progression,customText:kind==='boss'?bossLevels(textLanguage,advanced).map(level=>level.text).join(' '):text,random,sessionSeconds:RUNS[kind].seconds,officeTactics:kind!=='calibration'&&world==='office',campaignLevels:kind==='boss'?bossLevels(textLanguage,advanced):null}).start();
+ if(kind==='calibration'||kind==='train'){game.difficulty='normal';game._settings={lifetime:25,spawnInterval:2.8};}
+ updateMenu();activateGame();
+}
+function updateMissionHud(){
+ const key=Math.floor(clock*4);if(key===previousSkillHud)return;previousSkillHud=key;
+ $('missionHud').hidden=game.status==='ready';
+ const remaining=game.sessionSeconds?Math.max(0,Math.ceil(game.sessionSeconds-game.elapsed)):null;
+ $('runClock').textContent=remaining!==null?`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`:t('O TECLADO É O COMANDO');
+ $('bossStatus').textContent=game.boss?t(BOSSES[game.boss.id].name)+' · '+t('Fase')+' '+game.boss.phase+' · '+Math.round(100*(1-game.levelProgress))+'%':runKind==='daily'?runIdentity?.day||'':`${Math.round(game.wpm)} WPM`;
+ $('flowStatus').textContent=game.elapsed<game.coffeeUntil?t('CAFÉ: 5 SEGUNDOS DE PAZ.'):game.streak>=50?t('PRODUTIVIDADE EXCESSIVA'):game.streak>=20?t('EM FOCO'):'';
+}
+function openProfile(){pause();$('optionsDialog').close();renderProfile(profile);$('profileDialog').showModal();}
+$('profileButton').addEventListener('click',openProfile);$('optionsProfileButton').addEventListener('click',openProfile);
+for(const id of ['missionsButton','optionsMissionsButton'])$(id).addEventListener('click',()=>{pause();$('optionsDialog').close();$('missionsDialog').showModal();});
+for(const button of document.querySelectorAll('[data-run]'))button.addEventListener('click',()=>launchRun(button.dataset.run));
+$('shareResultButton').addEventListener('click',()=>{if(lastResult)downloadResult(lastResult,runIdentity?`DAILY ${runIdentity.day} · ${textLanguage.toUpperCase()}`:runKind.toUpperCase());});
+input.addEventListener('beforeinput',e=>{if(e.inputType?.startsWith('delete')&&game.status==='playing')skill?.correction();});
+$('gameTextLanguage').value=textOverride;
+$('gameTextLanguage').addEventListener('change',()=>{textOverride=$('gameTextLanguage').value;textLanguage=textOverride==='auto'?uiLanguage:textOverride;save('boring-text-override',textOverride);updateMenu();});
+$('adaptiveToggle').checked=adaptiveOn;$('adaptiveToggle').addEventListener('change',()=>{adaptiveOn=$('adaptiveToggle').checked;save('boring-adaptive',adaptiveOn);});
+document.body.classList.toggle('reduce-motion',reducedMotion);$('motionToggle').checked=reducedMotion;$('motionToggle').addEventListener('change',()=>{reducedMotion=$('motionToggle').checked;document.body.classList.toggle('reduce-motion',reducedMotion);save('boring-reduced-motion',reducedMotion);});
+for(const [id,key,cls]of [['contrastToggle','boring-contrast','high-contrast'],['crtToggle','boring-crt','crt']]){const value=readSaved(key,false);$(id).checked=value;document.body.classList.toggle(cls,value);$(id).addEventListener('change',()=>{save(key,$(id).checked);document.body.classList.toggle(cls,$(id).checked);});}
+$('qualitySetting').value=quality;$('qualitySetting').addEventListener('change',()=>{quality=$('qualitySetting').value;save('boring-quality',quality);});
+function lowQuality(){return quality==='low'||(quality==='auto'&&(coarsePointer||reducedMotion));}
+function applyPalette(){const mint=$('paletteSetting').querySelector('[value="mint"]'),sunset=$('paletteSetting').querySelector('[value="sunset"]');mint.disabled=profile.perfectLevels<1;sunset.disabled=profile.trophies.length<1;if((palette==='mint'&&mint.disabled)||(palette==='sunset'&&sunset.disabled))palette='classic';document.body.dataset.palette=palette;$('paletteSetting').value=palette;}
+$('paletteSetting').addEventListener('change',()=>{palette=$('paletteSetting').value;save('boring-palette',palette);applyPalette();});applyPalette();renderProfile(profile);$('calibrationNudge').hidden=profile.calibrated;
 menuUI = setupMenu({languages:supportedLanguages,getLanguage:()=>uiLanguage,onLanguage:value=>{$('uiLanguage').value=value;$('uiLanguage').dispatchEvent(new Event('change'));},onOptions:()=>{$('optionsDialog').showModal();}});
 updateMenu(); updateSoundButton(); updateHud(); updateTypedEcho(); translatePage();
 requestAnimationFrame(frame);
