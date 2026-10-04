@@ -13,6 +13,22 @@ export const languages = Object.freeze([
 ].map(Object.freeze));
 
 export const messageRows = Object.freeze([
+["Escolhe o ambiente da tua pausa. A variedade automática muda a música a cada nível. Os tiros e as explosões têm volume separado.", "Choose the mood for your break. Automatic variety changes the music at each level. Shots and explosions have a separate volume.", "Choisis l’ambiance de ta pause. La variété automatique change la musique à chaque niveau. Les tirs et les explosions ont un volume séparé.", "Wähle die Stimmung für deine Pause. Automatische Abwechslung wechselt die Musik in jedem Level. Schüsse und Explosionen haben eine eigene Lautstärke.", "Elige el ambiente de tu pausa. La variedad automática cambia la música en cada nivel. Los disparos y las explosiones tienen un volumen separado."],
+["A tua pausa.", "Your break.", "Ta pause.", "Deine Pause.", "Tu pausa."],
+["As tuas regras.", "Your rules.", "Tes règles.", "Deine Regeln.", "Tus reglas."],
+["Desliga das reuniões. Liga o teu teclado. Transforma a frustração em pequenas vitórias.", "Switch off the meetings. Switch on your keyboard. Turn frustration into small victories.", "Déconnecte des réunions. Branche ton clavier. Transforme la frustration en petites victoires.", "Raus aus den Meetings. Ran an die Tastatur. Verwandle Frust in kleine Siege.", "Desconecta de las reuniones. Activa tu teclado. Convierte la frustración en pequeñas victorias."],
+["Carrega o teu próprio texto.", "Bring your own text.", "Importe ton propre texte.", "Lade deinen eigenen Text.", "Carga tu propio texto."],
+["Um livro, umas notas ou aquele email. Tu escolhes. ↗", "A book, your notes or that email. Your choice. ↗", "Un livre, tes notes ou cet email. À toi de choisir. ↗", "Ein Buch, deine Notizen oder diese E-Mail. Du entscheidest. ↗", "Un libro, tus notas o ese correo. Tú eliges. ↗"],
+["Expert", "Expert", "Expert", "Experte", "Experto"],
+["Maiúsculas, acentos e pontuação exatos", "Exact capitals, accents and punctuation", "Majuscules, accents et ponctuation exacts", "Exakte Großschreibung, Akzente und Satzzeichen", "Mayúsculas, acentos y puntuación exactos"],
+["Ambiente musical", "Music mood", "Ambiance musicale", "Musikstimmung", "Ambiente musical"],
+["Variedade automática", "Automatic variety", "Variété automatique", "Automatische Abwechslung", "Variedad automática"],
+["Lo-fi · relaxar", "Lo-fi · unwind", "Lo-fi · détente", "Lo-fi · entspannen", "Lo-fi · relajarse"],
+["Jazz · uma pausa divertida", "Jazz · a playful break", "Jazz · une pause amusante", "Jazz · eine fröhliche Pause", "Jazz · una pausa divertida"],
+["Synthwave · ganhar ritmo", "Synthwave · find your rhythm", "Synthwave · trouve ton rythme", "Synthwave · finde deinen Rhythmus", "Synthwave · encuentra tu ritmo"],
+["Banda sonora original", "Original soundtrack", "Bande-son originale", "Original-Soundtrack", "Banda sonora original"],
+["Próxima música", "Next track", "Morceau suivant", "Nächster Titel", "Siguiente canción"],
+["Créditos da música", "Music credits", "Crédits musicaux", "Musik-Credits", "Créditos musicales"],
 ["Turno terminado. Recuperaste a tua vida.", "Shift over. Your life is yours again.", "Service terminé. Ta vie est à toi.", "Schicht vorbei. Dein Leben gehört dir.", "Turno terminado. Recuperaste tu vida."],
 ["RESPIRA. O EMAIL PODE ESPERAR.", "BREATHE. THE EMAIL CAN WAIT.", "RESPIRE. LE MAIL PEUT ATTENDRE.", "ATME. DIE E-MAIL KANN WARTEN.", "RESPIRA. EL CORREO PUEDE ESPERAR."],
 ["Regras da pausa", "Break rules", "Règles de la pause", "Pausenregeln", "Reglas de la pausa"],

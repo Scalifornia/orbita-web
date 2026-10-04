@@ -251,3 +251,31 @@ test('explosion preview works while paused without changing the current scene', 
   assert.equal(audio.scene,'paused');
   assert.equal(audio.effect('shot'),false);
 });
+
+
+test('automatic music changes by level and ignores an obsolete pending track', async(t)=>{
+ const io=setup(t),audio=new GameAudio({musicStyle:'auto'});
+ await audio.unlock();assert.ok(io.requests.has('chills.m4a'));
+ audio.setScene('game');audio.setMusicContext(2,'office');
+ await io.resolve('chills.m4a');assert.equal(audio._music,null);
+ await io.resolve('quirky-jazz.m4a');assert.equal(audio._music.trackKey,'jazz');
+ audio.context.advance(2);audio.setMusicContext(3,'office');
+ await io.resolve('synthwave-house.m4a');assert.equal(audio._music.trackKey,'synth');
+ audio.context.advance(3);assert.equal(audio._musicVoices.size,1);
+});
+
+test('manual mood and next track preserve pause and mute, and only selected music loads',async(t)=>{
+ const io=setup(t),audio=new GameAudio({musicStyle:'calm'});
+ assert.equal(io.requests.size,0);await audio.unlock();await io.resolve('chills.m4a');
+ audio.setMusicContext(6,'space');await flush();assert.equal(audio._music.trackKey,'calm');
+ audio.setScene('paused');const count=io.requests.size;audio.nextMusic();assert.equal(io.requests.size,count);
+ audio.setScene('game');assert.ok(io.requests.has('quirky-jazz.m4a'));
+ audio.setEnabled(false);await io.resolve('quirky-jazz.m4a');assert.equal(audio._music,null);
+ audio.setEnabled(true);await flush();assert.equal(audio._music.trackKey,'jazz');
+});
+
+test('zero music volume avoids background downloads and restoring volume starts the selected track',async(t)=>{
+ const io=setup(t),audio=new GameAudio({musicStyle:'synth',musicVolume:0});
+ await audio.unlock();assert.equal(io.requests.has('synthwave-house.m4a'),false);
+ audio.setMusicVolume(.2);await io.resolve('synthwave-house.m4a');assert.equal(audio._music.trackKey,'synth');
+});

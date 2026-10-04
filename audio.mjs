@@ -2,6 +2,11 @@ const TRACKS = {
   menu: new URL('./assets/menu-loop.wav', import.meta.url),
   game: new URL('./assets/binary-groove.wav', import.meta.url),
 };
+export const MUSIC_LIBRARY = Object.freeze([
+  { id: 'calm', title: 'Chills · Holizna', url: new URL('./assets/chills.m4a', import.meta.url) },
+  { id: 'jazz', title: 'Quirky Jazz · Spring Spring', url: new URL('./assets/quirky-jazz.m4a', import.meta.url) },
+  { id: 'synth', title: 'Synthwave House Loop · Fupi', url: new URL('./assets/synthwave-house.m4a', import.meta.url) },
+]);
 const SHOT = new URL('./assets/missile_launch.wav', import.meta.url);
 const clamp = (value, low, high, fallback) => Number.isFinite(Number(value)) ? Math.min(high, Math.max(low, Number(value))) : fallback;
 
@@ -14,11 +19,13 @@ const clamp = (value, low, high, fallback) => Number.isFinite(Number(value)) ? M
  * so a slow response cannot restart music after pause, mute or a scene change.
  */
 export class GameAudio {
-  constructor({ enabled = true, musicVolume = 0.25, sfxVolume = 0.5 } = {}) {
+  constructor({ enabled = true, musicVolume = 0.25, sfxVolume = 0.5, musicStyle = 'original' } = {}) {
     this.enabled = Boolean(enabled);
     this.musicVolume = clamp(musicVolume, 0, 1, 0.25);
     this.sfxVolume = clamp(sfxVolume, 0, 1, 0.5);
     this.scene = 'menu';
+    this.musicStyle = ['auto','calm','jazz','synth','original'].includes(musicStyle) ? musicStyle : 'auto';
+    this.musicLevel = 1; this.musicWorld = 'office'; this.musicShift = 0;
     this.intensity = 1;
     this.context = null;
     this._unlocked = false;
@@ -94,6 +101,7 @@ export class GameAudio {
   setMusicVolume(value) {
     this.musicVolume = clamp(value, 0, 1, this.musicVolume);
     if (this.context) this._ramp(this._musicBus.gain, this.musicVolume, 0.06);
+    this._requestMusic();
   }
 
   setSfxVolume(value) {
@@ -106,6 +114,32 @@ export class GameAudio {
     this.scene = scene;
     if (scene === 'paused' || scene === 'off') this._stopEffects();
     this._requestMusic();
+  }
+
+  setMusicStyle(style) {
+    if (!['auto','calm','jazz','synth','original'].includes(style)) return;
+    this.musicStyle=style; this.musicShift=0; this._requestMusic();
+  }
+
+  setMusicContext(level, world) {
+    const nextLevel=Math.max(1,Math.floor(Number(level)||1));
+    const nextWorld=['office','earth','space'].includes(world)?world:'office';
+    if (this.musicLevel===nextLevel && this.musicWorld===nextWorld) return;
+    this.musicLevel=nextLevel; this.musicWorld=nextWorld; this._requestMusic();
+  }
+
+  nextMusic() {
+    if (this.musicStyle==='original') this.musicStyle='auto';
+    if (this.musicStyle==='auto') this.musicShift++;
+    else this.musicStyle=MUSIC_LIBRARY[(MUSIC_LIBRARY.findIndex(track=>track.id===this.musicStyle)+1)%MUSIC_LIBRARY.length].id;
+    this._requestMusic();
+  }
+
+  currentTrack() {
+    if (this.musicStyle==='original') return {url:TRACKS[this.scene],key:this.scene,title:this.scene==='game'?'Binary Groove':'Original · Menu'};
+    const index=this.musicStyle==='auto' ? ((this.scene==='game'?this.musicLevel-1+{office:0,earth:1,space:2}[this.musicWorld]:0)+this.musicShift)%MUSIC_LIBRARY.length : MUSIC_LIBRARY.findIndex(track=>track.id===this.musicStyle);
+    const track=MUSIC_LIBRARY[Math.max(0,index)];
+    return {...track,key:track.id};
   }
 
   setIntensity(value) {
@@ -140,20 +174,21 @@ export class GameAudio {
   _requestMusic() {
     const generation = ++this._musicGeneration;
     if (!this.context || !this._unlocked) return;
-    const wanted = this.enabled && TRACKS[this.scene] ? this.scene : null;
+    const wanted = this.enabled && this.musicVolume > 0 && TRACKS[this.scene] ? this.scene : null;
+    const track = this.currentTrack();
     if (!wanted) {
       this._retireMusic(this._music, 0.16);
       for (const voice of this._musicVoices) this._retireMusic(voice, 0.16);
       return;
     }
-    if (this.context.state !== 'running' || this._music?.scene === wanted) return;
-    this._load(TRACKS[wanted]).then((buffer) => {
+    if (this.context.state !== 'running' || (this._music?.scene === wanted && this._music?.trackKey === track.key)) return;
+    this._load(track.url).then((buffer) => {
       if (!buffer || generation !== this._musicGeneration || !this.enabled || this.scene !== wanted || this.context.state !== 'running') return;
-      this._startMusic(wanted, buffer);
+      this._startMusic(wanted, buffer, track.key);
     }).catch(() => {});
   }
 
-  _startMusic(scene, buffer) {
+  _startMusic(scene, buffer, trackKey = scene) {
     // Retire previous transitions before starting the next crossfade.
     for (const voice of this._musicVoices) {
       if (voice !== this._music) this._retireMusic(voice, 0.01, true);
@@ -169,13 +204,13 @@ export class GameAudio {
     filter.frequency.value = this._cutoff();
     filter.Q.value = 0.55;
     const startsAt = context.currentTime + 0.012;
-    const offset = (this._offsets[scene] || 0) % buffer.duration;
+    const offset = (this._offsets[trackKey] || 0) % buffer.duration;
     gain.gain.setValueAtTime(0, context.currentTime);
     // Keep the supplied groove below the UI/typing cues without modifying the
     // player's volume setting; the menu has a slightly fuller level.
     gain.gain.linearRampToValueAtTime(scene === 'game' ? 0.82 : 0.92, startsAt + 0.38);
     source.connect(filter); filter.connect(gain); gain.connect(this._musicBus);
-    const voice = { source, gain, filter, scene, startsAt, offset, buffer, retired: false };
+    const voice = { source, gain, filter, scene, trackKey, startsAt, offset, buffer, retired: false };
     this._musicVoices.add(voice);
     this._music = voice;
     source.onended = () => {
@@ -189,7 +224,7 @@ export class GameAudio {
   _retireMusic(voice, duration, force = false) {
     if (!voice || (voice.retired && !force)) return;
     const now = this.context.currentTime;
-    if (!voice.retired) this._offsets[voice.scene] = (voice.offset + Math.max(0, now - voice.startsAt)) % voice.buffer.duration;
+    if (!voice.retired) this._offsets[voice.trackKey] = (voice.offset + Math.max(0, now - voice.startsAt)) % voice.buffer.duration;
     voice.retired = true;
     if (this._music === voice) this._music = null;
     this._ramp(voice.gain.gain, 0, duration);

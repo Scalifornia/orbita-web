@@ -95,3 +95,11 @@ Cenários: Escritório usa leitura básica em campanha; Espaço propõe sobreviv
 - Passagem de nível automática após exatamente 8 segundos de resumo totalmente visível, sem precisar de clicar. O contador indica os segundos restantes. Pausar ou sair da página suspende a contagem.
 - Inglês como idioma inicial com uma nova preferência de idioma; as escolhas seguintes ficam guardadas. Textos pré-programados acompanham o idioma, documentos pessoais conservam o original.
 - Esta duração substitui as transições anteriores com fades de 4,5 segundos.
+
+
+## Pausa à medida — 4 outubro 2026
+- Idioma junto de Jogar; barra superior com Escritório/Terra/Espaço, escrita Normal/Expert e importação direta.
+- Coluna lateral com convite à importação, dificuldade, texto seguido/palavras soltas e campanha/infinito. O botão de importação abre a escolha de ficheiro e depois a pré-visualização existente.
+- Três músicas CC0 adicionais: Chills (Holizna), Quirky Jazz (Spring Spring) e Synthwave House Loop (Fupi). Créditos e fontes em assets/MUSIC-CREDITS.md e no painel Áudio.
+- Variedade automática por nível e cenário, escolha de ambiente e Próxima música; banda sonora original disponível. As músicas são carregadas só após um gesto e em função da seleção. Cerca de 2,8 MB adicionais no total, com excertos AAC para controlar memória e dados móveis.
+- Regressões de áudio cobrem troca de música, carregamentos atrasados, pausa, silêncio e recuperação de volume. Seleções de idioma e modo sincronizam os atalhos com as opções.

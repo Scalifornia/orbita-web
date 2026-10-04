@@ -7,7 +7,7 @@
   <meta name="description" content="Boring Office: uma pausa de escrita, sarcasmo e pequenas vitórias contra os absurdos do escritório.">
   <title>Boring Office — Pausa para não responder.</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css?v=20261002">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./evolution.css?v=20261004e">
 </head>
 <body>
 <div class="viewport" id="viewport">
@@ -17,14 +17,18 @@
       <span>BORING OFFICE<span class="brand-dot">✳</span></span>
     </a>
     <div class="header-note"><span class="live-dot"></span> NEON PROTOCOL <span class="header-version">02</span></div>
-    <nav aria-label="Controlos"><button id="helpButton" class="text-button">Como jogar <span>↗</span></button><button id="audioSettingsButton" class="text-button">Áudio <span>≋</span></button><button id="soundButton" class="icon-button" aria-label="Desativar som" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path id="soundWaves" d="M15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg></button><label class="header-language"><span aria-hidden="true">◎</span><span class="sr-only">Idioma do jogo</span><select id="menuLanguage" aria-label="Idioma do jogo"></select></label></nav>
+    <nav aria-label="Controlos"><div class="header-worlds" role="group" aria-label="Cenário"><button data-world="office">Escritório</button><button data-world="earth">Terra</button><button data-world="space">Espaço</button></div><div class="header-writing" role="group" aria-label="Escrita"><button data-writing="basic">Normal</button><button data-writing="advanced" title="Maiúsculas, acentos e pontuação exatos">Expert</button></div><button class="text-button header-upload" data-upload>Carregar texto/documento <span>↗</span></button><button id="helpButton" class="text-button">Como jogar <span>↗</span></button><button id="audioSettingsButton" class="text-button">Áudio <span>≋</span></button><button id="soundButton" class="icon-button" aria-label="Desativar som" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path id="soundWaves" d="M15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg></button></nav>
   </header>
 
   <main class="layout">
     <aside class="sidebar">
       <div class="eyebrow"><span class="small-cross">✳</span> BEM-VINDO À SEGUNDA-FEIRA</div>
-      <h1>Trabalha.<br>Sorri.<br><em>Repete.</em></h1>
-      <p class="intro">O café morreu. A reunião não.<br>Escreve depressa. Parece produtividade.</p>
+      <h1>A tua pausa.<br><em>As tuas regras.</em></h1>
+      <p class="intro">Desliga das reuniões. Liga o teu teclado. Transforma a frustração em pequenas vitórias.</p>
+      <div class="break-tools"><button class="upload-callout" data-upload><strong>Carrega o teu próprio texto.</strong><span>Um livro, umas notas ou aquele email. Tu escolhes. ↗</span></button>
+      <label>Dificuldade<select data-setting="difficulty"><option value="normal">Normal</option><option value="hard">Difícil</option><option value="extreme">Extremo</option></select></label>
+      <label>Modo de jogo<select data-setting="mode"><option value="reading">Texto seguido</option><option value="arcade">Palavras soltas</option></select></label>
+      <label>Progressão<select data-setting="progression"><option value="campaign">Campanha</option><option value="endless">Infinito</option></select></label></div>
       <div class="ship-card"><div><span class="eyebrow">A TUA NAVE</span><strong>INTERCEPTOR</strong><small>PROPULSÃO IÓNICA · ONLINE</small></div><img src="./assets/player-ship.png" alt="A tua nave original, com quatro propulsores azuis"></div>
       <div class="record-card"><span class="eyebrow">O TEU LEGADO EM NÚMEROS <span>↗</span></span><strong id="recordValue">00000</strong><span class="record-caption" id="recordCaption">Neste navegador · modo normal</span></div>
       <div class="instructions"><div><span>01</span><p>Escolhe um alvo.<br><b>Escreve a primeira letra.</b></p></div><div><span>02</span><p>Completa a palavra.<br><b>Cada letra dispara.</b></p></div><div><span>03</span><p>Mantém o ritmo.<br><b>Protege as tuas 3 vidas.</b></p></div></div>
@@ -50,7 +54,7 @@
 
         <section class="overlay start-panel" id="startPanel" aria-labelledby="startHeading">
           <h2 id="startHeading" class="sr-only" data-no-i18n>Boring Office</h2>
-          <button id="startButton" class="primary-button">Jogar <span>↗</span></button>
+          <label class="start-language"><span aria-hidden="true">◎</span><span>Idioma do jogo</span><select id="menuLanguage" aria-label="Idioma do jogo"></select></label><button id="startButton" class="primary-button">Jogar <span>↗</span></button>
           <button id="optionsButton" class="custom-button">Opções</button>
         </section>
 
@@ -129,14 +133,14 @@
 <dialog id="audioDialog" aria-labelledby="audioTitle">
   <button class="dialog-close icon-button" data-close="audioDialog" aria-label="Fechar áudio">×</button>
   <div class="eyebrow">FREQUÊNCIA NÉON</div><h2 id="audioTitle">Sente o ritmo.</h2>
-  <p>Ambiente no menu e Binary Groove durante a missão. Missile Launch acompanha os tiros; Explosion toca quando uma palavra é destruída.</p>
-  <label for="musicVolume">Música <output id="musicVolumeLabel">25%</output></label><input id="musicVolume" type="range" min="0" max="100" value="25">
+  <p>Escolhe o ambiente da tua pausa. A variedade automática muda a música a cada nível. Os tiros e as explosões têm volume separado.</p>
+  <label for="musicStyle">Ambiente musical</label><select id="musicStyle"><option value="auto">Variedade automática</option><option value="calm">Lo-fi · relaxar</option><option value="jazz">Jazz · uma pausa divertida</option><option value="synth">Synthwave · ganhar ritmo</option><option value="original">Banda sonora original</option></select><button id="nextMusicButton" class="custom-button">Próxima música <span>↗</span></button><p id="musicNow" data-no-i18n></p><details class="music-credits"><summary>Créditos da música</summary><p data-no-i18n>Chills — Holizna · <a href="https://opengameart.org/content/chills" target="_blank" rel="noopener">OpenGameArt</a><br>Quirky Jazz — Spring Spring · <a href="https://opengameart.org/content/quirky-jazz" target="_blank" rel="noopener">OpenGameArt</a><br>Synthwave House Loop — Fupi · <a href="https://opengameart.org/content/synthwave-house-loop" target="_blank" rel="noopener">OpenGameArt</a><br>CC0 1.0 · <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">License</a></p></details><label for="musicVolume">Música <output id="musicVolumeLabel">25%</output></label><input id="musicVolume" type="range" min="0" max="100" value="25">
   <label for="sfxVolume">Tiros e explosões <output id="sfxVolumeLabel">50%</output></label><input id="sfxVolume" type="range" min="0" max="100" value="50">
   <button id="testExplosionButton" class="custom-button">Testar explosão</button><button id="audioListenButton" class="primary-button">Ativar áudio <span>♫</span></button>
   <p class="dialog-note">O som começa após o primeiro toque ou clique. Podes desligá-lo no ícone de altifalante.</p>
 </dialog>
 <dialog id="rankingDialog" aria-labelledby="rankingTitle"><button class="dialog-close icon-button" data-close="rankingDialog" aria-label="Fechar">×</button><h2 id="rankingTitle">Ranking local</h2><p>As 10 melhores partidas nesta configuração, guardadas neste navegador.</p><p id="rankingConfig"></p><ol id="rankingList"></ol><p id="rankingStatus" role="status"></p></dialog>
 <dialog id="readerDialog" aria-labelledby="readerTitle"><header class="reader-header"><div><span class="eyebrow">LEITURA</span><h2 id="readerTitle" data-no-i18n></h2></div><button class="dialog-close icon-button" data-close="readerDialog" aria-label="Fechar">×</button></header><div class="reader-controls"><label for="readerSection">Secção</label><select id="readerSection" data-no-i18n></select><button id="readerSmaller" aria-label="Diminuir texto">A−</button><button id="readerLarger" aria-label="Aumentar texto">A+</button></div><article id="readerContent" tabindex="0" data-no-i18n></article><footer class="reader-footer"><button id="readerPrevious">Anterior</button><span id="readerPosition" data-no-i18n></span><button id="readerNext">Seguinte</button></footer></dialog>
-<script type="module" src="./main.mjs?v=20261004b"></script>
+<script type="module" src="./main.mjs?v=20261004e"></script>
 </body>
 </html>

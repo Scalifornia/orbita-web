@@ -242,7 +242,7 @@ test('all current HTML text and accessible labels have catalog coverage', () => 
   const literals = [...html.matchAll(/>([^<>]+)</g)].map(match => match[1].trim());
   literals.push(...[...html.matchAll(/(?:aria-label|placeholder|title|alt)="([^"]+)"/g)].map(match => match[1]));
   const intentionallyUntranslated = new Set([
-    'ÓRBITA', 'Esc', ...Object.values(supportedLanguages),
+    'ÓRBITA', 'Esc', 'Chills — Holizna ·', 'Quirky Jazz — Spring Spring ·', 'Synthwave House Loop — Fupi ·', 'OpenGameArt', 'CC0 1.0 ·', 'License', ...Object.values(supportedLanguages),
     ...Object.values(stories).flatMap(story => Object.values(story).map(item => item.title)),
   ]);
   for (const source of literals.filter(text => /\p{L}/u.test(text))) {

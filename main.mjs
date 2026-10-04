@@ -2,16 +2,16 @@ import { drawThreat } from './office-art.mjs';
 import { GameEngine, normalizeText, wordsFromText } from './engine.mjs';
 import { TypingInput } from './input.mjs';
 import { stories } from './stories.mjs';
-import { setupMenu } from './interface.mjs';
-import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs';
+import { setupMenu } from './interface.mjs?v=20261004e';
+import { translatePage, t, setLanguage, supportedLanguages, languageTags, previewWords } from './locale.mjs?v=20261004e';
 import { Adventure } from './adventure.mjs';
-import { setupReader } from './reader.mjs';
+import { setupReader } from './reader.mjs?v=20261004e';
 import { createCampaign } from './campaign.mjs';
-import { setupLibrary } from './library.mjs';
+import { setupLibrary } from './library.mjs?v=20261004e';
 import { documentFromText } from './documentImport.mjs';
 import { SceneRenderer } from './scenery.mjs';
 import { LevelTransition } from './transitions.mjs';
-import { GameAudio } from './audio.mjs';
+import { GameAudio } from './audio.mjs?v=20261004e';
 import { WORLD_PRESETS } from './worlds.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -52,7 +52,7 @@ setLanguage(uiLanguage);
 let soundOn = readSaved('orbita-sound', true) === true;
 let musicVolume = Math.min(1, Math.max(0, Number(readSaved('orbita-music-volume', 0.25)) || 0));
 let sfxVolume = Math.min(1, Math.max(0, Number(readSaved('orbita-sfx-volume', 0.5)) || 0));
-const sound = new GameAudio({ enabled: soundOn, musicVolume, sfxVolume });
+const sound = new GameAudio({ enabled: soundOn, musicVolume, sfxVolume, musicStyle:readSaved('boring-music-style','auto') });
 sound.setScene('menu');
 let audioReady = false;
 let menuUI = null;
@@ -91,6 +91,9 @@ function showRanking() {
   $('optionsDialog').close(); $('rankingDialog').showModal();
 }
 function updateMenu() {
+  for (const select of document.querySelectorAll('[data-setting]')) select.value = ({difficulty,mode,progression})[select.dataset.setting];
+  document.querySelectorAll('[data-writing]').forEach(button=>button.setAttribute('aria-pressed',String((button.dataset.writing==='advanced')===advanced)));
+
   document.body.classList.toggle('earth', world === 'earth');
   document.body.classList.toggle('office', world === 'office');
   $('worldDescription').textContent=t(world==='office'?'Uma pausa. Uma tarefa de cada vez. Sem reuniões.':world==='space'?'Sobrevive às vagas: alvos livres, ritmo rápido e missão infinita.':'Abranda e afina a escrita: história seguida com pontuação e acentos exatos.');
@@ -393,6 +396,8 @@ function updateHud() {
   const key = `${game.score}:${game.wave}:${game.lives}:${game.mistakes}:${game.streak}:${target?.id}:${target?.progress}:${game.status}:${game.speedPercent}`;
   if (key === lastHudKey) return;
   lastHudKey = key;
+  const configuring = !['playing','paused','transition'].includes(game.status);
+  document.querySelectorAll('[data-world],[data-writing],select[data-setting]').forEach(control=>{control.disabled=!configuring;});
   $('scoreValue').textContent = String(game.score).padStart(5, '0');
   $('waveValue').textContent = String(game.wave).padStart(2, '0');
   $('speedValue').textContent = `${game.speedMultiplier.toFixed(2)}×`;
@@ -487,6 +492,10 @@ function updateEffects(dt) {
 }
 
 function drawBackground(time) {
+  sound.setMusicContext(game.level,world);
+  const musicTitle=sound.currentTrack().title;
+  if($('musicNow').textContent!==musicTitle)$('musicNow').textContent=musicTitle;
+
   scenery.drawBackground(ctx,{width,height,time,world,level:game.level,playing:game.status==='playing',speed:game.speedMultiplier,reducedMotion});
 }
 function drawShip(time) {
@@ -628,6 +637,9 @@ $('menuMusicButton').addEventListener('click', () => {
   sound.setEnabled(soundOn); sound.setScene('menu'); save('orbita-sound', soundOn);
   unlockAudio(); updateSoundButton();
 });
+$('musicStyle').value=sound.musicStyle;
+$('musicStyle').addEventListener('change',()=>{sound.setMusicStyle($('musicStyle').value);save('boring-music-style',sound.musicStyle);unlockAudio();});
+$('nextMusicButton').addEventListener('click',()=>{sound.nextMusic();$('musicStyle').value=sound.musicStyle;save('boring-music-style',sound.musicStyle);unlockAudio();});
 $('optionsAudioButton').addEventListener('click',()=>{$('optionsDialog').close();$('audioDialog').showModal();});
 $('audioSettingsButton').addEventListener('click', () => { pause(); $('audioDialog').showModal(); });
 $('audioListenButton').addEventListener('click', () => {
@@ -654,7 +666,10 @@ $('helpButton').addEventListener('click', () => { pause(); $('helpDialog').showM
 const library=setupLibrary({getLanguage:()=>textLanguage,onStart:beginDocument,onRead:campaign=>reader.open(campaign),onDefault:()=>{customText='';save('orbita-text','');updateMenu();}});
 $('readBookButton').addEventListener('click',()=>{pause();reader.open(adventure.campaign || createCampaign(documentFromText(customText || stories[story][textLanguage].text,customText?t('Texto personalizado'):stories[story][textLanguage].title)),Math.max(0,adventure.campaign?game.level-1:0));});
 $('testExplosionButton').addEventListener('click',async()=>{soundOn=true;save('orbita-sound',true);sound.setEnabled(true);if(sfxVolume===0){sfxVolume=.5;sound.setSfxVolume(.5);save('orbita-sfx-volume',.5);$('sfxVolume').value=50;$('sfxVolumeLabel').textContent='50%';}await sound.unlock();sound.previewExplosion();updateSoundButton();translatePage();});
-for(const button of document.querySelectorAll('[data-world]'))button.addEventListener('click',()=>{$('world').value=button.dataset.world;$('world').dispatchEvent(new Event('change'));});
+for(const button of document.querySelectorAll('[data-world]'))button.addEventListener('click',()=>{pause();$('world').value=button.dataset.world;$('world').dispatchEvent(new Event('change'));});
+document.querySelectorAll('[data-writing]').forEach(button=>button.addEventListener('click',()=>{pause();$('writing').value=button.dataset.writing;$('writing').dispatchEvent(new Event('change'));}));
+document.querySelectorAll('[data-setting]').forEach(select=>select.addEventListener('change',()=>{pause();document.querySelector(`[data-${select.dataset.setting}="${select.value}"]`).click();}));
+document.querySelectorAll('[data-upload]').forEach(button=>button.addEventListener('click',()=>{pause();$('optionsDialog').close();library.open(customText);$('documentFile').value='';$('documentFile').click();}));
 $('customButton').addEventListener('click',()=>{$('optionsDialog').close();library.open(customText);});
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
 
